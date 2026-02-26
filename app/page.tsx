@@ -24,7 +24,18 @@ export default function Home() {
         body: JSON.stringify({ message: trimmed }),
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      let data: { error?: string; response?: string };
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setError(
+          res.status === 404
+            ? "Chat API not found (404). Restart the dev server and try again."
+            : `Server returned ${res.status}. ${text ? `Response: ${text.slice(0, 100)}` : ""}`
+        );
+        return;
+      }
 
       if (!res.ok) {
         setError(data.error ?? "Something went wrong");
@@ -33,8 +44,9 @@ export default function Home() {
 
       setResponse(data.response ?? "");
       setMessage("");
-    } catch {
-      setError("Failed to connect");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to connect";
+      setError(msg.includes("fetch") || msg.includes("network") ? "Failed to connect. Check your network." : msg);
     } finally {
       setIsLoading(false);
     }
