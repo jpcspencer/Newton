@@ -11,6 +11,23 @@ type FeedArticle = {
   url: string;
 };
 
+const IMPORTANCE_KEYWORDS = [
+  "breakthrough",
+  "first",
+  "major",
+  "launches",
+  "releases",
+  "critical",
+  "emergency",
+  "revolutionary",
+];
+
+function getImportanceScore(headline: string): number {
+  const lower = headline.toLowerCase();
+  const count = IMPORTANCE_KEYWORDS.filter((kw) => lower.includes(kw)).length;
+  return Math.min(5, Math.max(1, count + 1));
+}
+
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -251,11 +268,26 @@ export default function Home() {
             )}
             {!feedLoading &&
               !feedError &&
-              feedArticles.map((article, index) => (
+              feedArticles.map((article, index) => {
+                const importance = getImportanceScore(article.title);
+                return (
                 <article
                   key={article.url || index}
-                  className="w-full rounded-lg border border-[#e8e8e8] bg-white px-5 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] sm:px-6 sm:py-6"
+                  className="relative w-full rounded-lg border border-[#e8e8e8] bg-white px-5 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] sm:px-6 sm:py-6"
                 >
+                  <div
+                    className="absolute right-5 top-5 flex gap-0.5 sm:right-6 sm:top-6"
+                    aria-label={`Importance: ${importance} of 5`}
+                  >
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <span
+                        key={i}
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                          i <= importance ? "bg-[#171717]" : "border border-[#d4d4d4] bg-transparent"
+                        }`}
+                      />
+                    ))}
+                  </div>
                   <span className="mb-3 inline-block text-xs font-medium uppercase tracking-wider text-[#737373]">
                     {article.sourceName}
                   </span>
@@ -278,7 +310,8 @@ export default function Home() {
                     </time>
                   </div>
                 </article>
-              ))}
+              );
+              })}
           </div>
         </section>
 
