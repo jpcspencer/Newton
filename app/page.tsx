@@ -53,7 +53,12 @@ function getTextContent(children: React.ReactNode): string {
   return "";
 }
 
-function ResponseContent({ content }: { content: string }) {
+function ResponseContent({ content, isDark }: { content: string; isDark: boolean }) {
+  const textCls = isDark ? "text-[#ededed]" : "text-[#171717]";
+  const highlightCls = isDark
+    ? "border-[#404040] bg-[#262626]"
+    : "border-[#e5e0da] bg-[#f5f2ee]";
+  const strongCls = isDark ? "font-semibold text-[#ededed]" : "font-semibold text-[#171717]";
   return (
     <ReactMarkdown
       components={{
@@ -61,20 +66,20 @@ function ResponseContent({ content }: { content: string }) {
           const text = getTextContent(children);
           if (text.trimStart().startsWith("⚡ NoC")) {
             return (
-              <div className="mt-4 rounded-lg border border-[#e5e0da] bg-[#f5f2ee] px-4 py-3.5 first:mt-0">
-                <p className="text-[15px] leading-relaxed text-[#171717] [&>strong]:font-bold [&>strong]:text-[#171717]">
+              <div className={`mt-4 rounded-lg border px-4 py-3.5 first:mt-0 ${highlightCls}`}>
+                <p className={`text-[15px] leading-relaxed [&>strong]:font-bold ${textCls}`}>
                   {children}
                 </p>
               </div>
             );
           }
-          return <p className="mb-3 last:mb-0 text-[15px] leading-relaxed text-[#171717]">{children}</p>;
+          return <p className={`mb-3 last:mb-0 text-[15px] leading-relaxed ${textCls}`}>{children}</p>;
         },
-        strong: ({ children }) => <strong className="font-semibold text-[#171717]">{children}</strong>,
+        strong: ({ children }) => <strong className={strongCls}>{children}</strong>,
         em: ({ children }) => <em className="italic">{children}</em>,
         ul: ({ children }) => <ul className="my-3 list-disc pl-5 space-y-1">{children}</ul>,
         ol: ({ children }) => <ol className="my-3 list-decimal pl-5 space-y-1">{children}</ol>,
-        li: ({ children }) => <li className="text-[15px] leading-relaxed">{children}</li>,
+        li: ({ children }) => <li className={`text-[15px] leading-relaxed ${textCls}`}>{children}</li>,
       }}
     >
       {content}
@@ -84,7 +89,10 @@ function ResponseContent({ content }: { content: string }) {
 
 type Panel = "feed" | "newton";
 
+const THEME_STORAGE_KEY = "newton-theme";
+
 export default function Home() {
+  const [isDark, setIsDark] = useState(false);
   const [message, setMessage] = useState("");
   const [response, setResponse] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -96,6 +104,11 @@ export default function Home() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    setIsDark(stored === "dark");
+  }, []);
+
+  useEffect(() => {
     fetch("/api/feed")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load feed");
@@ -105,6 +118,12 @@ export default function Home() {
       .catch((err) => setFeedError(err instanceof Error ? err.message : "Failed to load feed"))
       .finally(() => setFeedLoading(false));
   }, []);
+
+  function toggleTheme() {
+    const next = !isDark;
+    setIsDark(next);
+    localStorage.setItem(THEME_STORAGE_KEY, next ? "dark" : "light");
+  }
 
   const scrollToPanel = useCallback((panel: Panel) => {
     const el = scrollRef.current;
@@ -179,10 +198,40 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-white">
+    <div
+      className={`flex min-h-screen w-full flex-col transition-colors duration-200 ${
+        isDark ? "bg-[#0a0a0a]" : "bg-white"
+      }`}
+    >
+      {/* Dark mode toggle */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+        className={`fixed right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-2 ${
+          isDark
+            ? "text-[#a3a3a3] hover:text-[#ededed] focus:ring-offset-[#0a0a0a]"
+            : "text-[#737373] hover:text-[#525252] focus:ring-offset-white"
+        }`}
+      >
+        {isDark ? (
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+            <path d="M12 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 12a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM18.894 6.166a.75.75 0 0 0-1.06-1.06l-1.591 1.59a.75.75 0 1 0 1.06 1.061l1.591-1.59ZM21.75 12a.75.75 0 0 1-.75.75h-2.25a.75.75 0 0 1 0-1.5H21a.75.75 0 0 1 .75.75ZM17.834 18.894a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 1 0-1.061 1.06l1.59 1.591ZM12 18a.75.75 0 0 1 .75.75V21a.75.75 0 0 1-1.5 0v-2.25A.75.75 0 0 1 12 18ZM7.758 17.303a.75.75 0 0 0-1.061-1.06l-1.591 1.59a.75.75 0 0 0 1.06 1.061l1.591-1.59ZM6 12a.75.75 0 0 1-.75.75H3a.75.75 0 0 1 0-1.5h2.25A.75.75 0 0 1 6 12ZM6.697 7.757a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 0 0-1.061 1.06l1.59 1.591Z" />
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+            <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 0 1 .162.819A8.97 8.97 0 0 0 9 6a9 9 0 0 0 9 9 8.97 8.97 0 0 0 3.463-.69.75.75 0 0 1 .981.98 10.503 10.503 0 0 1-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 0 1 .818.162Z" clipRule="evenodd" />
+          </svg>
+        )}
+      </button>
+
       <header className="flex shrink-0 flex-col items-center px-4 pt-12 pb-6 sm:px-6 sm:pb-8">
         {/* Logo */}
-        <h1 className="mb-6 font-serif text-5xl font-normal tracking-tight text-[#171717] sm:mb-8 sm:text-6xl md:text-7xl">
+        <h1
+          className={`mb-6 font-serif text-5xl font-normal tracking-tight sm:mb-8 sm:text-6xl md:text-7xl ${
+            isDark ? "text-[#ededed]" : "text-[#171717]"
+          }`}
+        >
           Newton
         </h1>
 
@@ -199,7 +248,9 @@ export default function Home() {
             className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors duration-200 ${
               activePanel === "feed"
                 ? "bg-[#171717] text-white"
-                : "text-[#737373] hover:text-[#525252]"
+                : isDark
+                  ? "text-[#a3a3a3] hover:text-[#ededed]"
+                  : "text-[#737373] hover:text-[#525252]"
             }`}
           >
             Feed
@@ -211,7 +262,9 @@ export default function Home() {
             className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors duration-200 ${
               activePanel === "newton"
                 ? "bg-[#171717] text-white"
-                : "text-[#737373] hover:text-[#525252]"
+                : isDark
+                  ? "text-[#a3a3a3] hover:text-[#ededed]"
+                  : "text-[#737373] hover:text-[#525252]"
             }`}
           >
             Newton
@@ -234,7 +287,7 @@ export default function Home() {
           <div className="flex w-full max-w-xl flex-col items-center gap-4 sm:gap-5">
             {feedLoading && (
               <div className="flex w-full items-center justify-center py-16">
-                <div className="flex items-center gap-2 text-[#737373]">
+                <div className={`flex items-center gap-2 ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}>
                   <svg
                     className="h-5 w-5 animate-spin"
                     xmlns="http://www.w3.org/2000/svg"
@@ -261,10 +314,10 @@ export default function Home() {
               </div>
             )}
             {feedError && !feedLoading && (
-              <p className="w-full py-8 text-center text-sm text-red-600">{feedError}</p>
+              <p className={`w-full py-8 text-center text-sm ${isDark ? "text-red-400" : "text-red-600"}`}>{feedError}</p>
             )}
             {!feedLoading && !feedError && feedArticles.length === 0 && (
-              <p className="w-full py-8 text-center text-sm text-[#737373]">No articles to show.</p>
+              <p className={`w-full py-8 text-center text-sm ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}>No articles to show.</p>
             )}
             {!feedLoading &&
               !feedError &&
@@ -273,7 +326,11 @@ export default function Home() {
                 return (
                 <article
                   key={article.url || index}
-                  className="relative w-full rounded-lg border border-[#e8e8e8] bg-white px-5 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] sm:px-6 sm:py-6"
+                  className={`relative w-full rounded-lg border px-5 py-5 transition-shadow sm:px-6 sm:py-6 ${
+                    isDark
+                      ? "border-[#262626] bg-[#171717] hover:shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                      : "border-[#e8e8e8] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                  }`}
                 >
                   <div
                     className="absolute right-5 top-5 flex gap-0.5 sm:right-6 sm:top-6"
@@ -283,29 +340,37 @@ export default function Home() {
                       <span
                         key={i}
                         className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                          i <= importance ? "bg-[#171717]" : "border border-[#d4d4d4] bg-transparent"
+                          i <= importance
+                            ? "bg-[#ededed]"
+                            : isDark
+                              ? "border border-[#404040] bg-transparent"
+                              : "border border-[#d4d4d4] bg-transparent"
                         }`}
                       />
                     ))}
                   </div>
-                  <span className="mb-3 inline-block text-xs font-medium uppercase tracking-wider text-[#737373]">
+                  <span className={`mb-3 inline-block text-xs font-medium uppercase tracking-wider ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}>
                     {article.sourceName}
                   </span>
-                  <h2 className="mb-2 font-serif text-xl font-normal leading-tight text-[#171717] sm:text-2xl">
+                  <h2 className={`mb-2 font-serif text-xl font-normal leading-tight sm:text-2xl ${isDark ? "text-[#ededed]" : "text-[#171717]"}`}>
                     {article.title}
                   </h2>
-                  <p className="mb-4 text-[15px] leading-relaxed text-[#525252]">
+                  <p className={`mb-4 text-[15px] leading-relaxed ${isDark ? "text-[#a3a3a3]" : "text-[#525252]"}`}>
                     {article.description}
                   </p>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <button
                       type="button"
                       onClick={() => handleGoDeeper(article.title)}
-                      className="rounded-full border border-[#171717] bg-white px-4 py-2 text-sm font-medium text-[#171717] transition-colors hover:bg-[#171717] hover:text-white"
+                      className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                        isDark
+                          ? "border-[#ededed] bg-transparent text-[#ededed] hover:bg-[#ededed] hover:text-[#171717]"
+                          : "border-[#171717] bg-white text-[#171717] hover:bg-[#171717] hover:text-white"
+                      }`}
                     >
                       Go deeper with Newton
                     </button>
-                    <time className="text-xs text-[#a3a3a3]" dateTime={article.publishedAt}>
+                    <time className={`text-xs ${isDark ? "text-[#737373]" : "text-[#a3a3a3]"}`} dateTime={article.publishedAt}>
                       {formatRelativeTime(article.publishedAt)}
                     </time>
                   </div>
@@ -329,7 +394,11 @@ export default function Home() {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Ask Newton anything..."
                 disabled={isLoading}
-                className="w-full rounded-full border border-[#e5e5e5] bg-white py-3.5 pl-5 pr-14 text-base text-[#171717] placeholder:text-[#737373] transition-colors focus:border-[#a3a3a3] focus:outline-none focus:ring-0 disabled:opacity-60 sm:py-4 sm:pl-6 sm:pr-16 sm:text-lg"
+                className={`w-full rounded-full border py-3.5 pl-5 pr-14 text-base transition-colors focus:outline-none focus:ring-0 disabled:opacity-60 sm:py-4 sm:pl-6 sm:pr-16 sm:text-lg ${
+                  isDark
+                    ? "border-[#404040] bg-[#171717] text-[#ededed] placeholder:text-[#737373] focus:border-[#737373]"
+                    : "border-[#e5e5e5] bg-white text-[#171717] placeholder:text-[#737373] focus:border-[#a3a3a3]"
+                }`}
                 aria-label="Search"
               />
               <button
@@ -351,7 +420,7 @@ export default function Home() {
 
             <div className="w-full">
               {isLoading && (
-                <div className="flex items-center gap-2 text-[#737373]">
+                <div className={`flex items-center gap-2 ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}>
                   <svg
                     className="h-4 w-4 animate-spin"
                     xmlns="http://www.w3.org/2000/svg"
@@ -377,11 +446,15 @@ export default function Home() {
                 </div>
               )}
               {error && !isLoading && (
-                <p className="text-sm text-red-600">{error}</p>
+                <p className={`text-sm ${isDark ? "text-red-400" : "text-red-600"}`}>{error}</p>
               )}
               {response && !isLoading && (
-                <div className="rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-5 py-4">
-                  <ResponseContent content={response} />
+                <div
+                  className={`rounded-lg border px-5 py-4 ${
+                    isDark ? "border-[#404040] bg-[#171717]" : "border-[#e5e5e5] bg-[#fafafa]"
+                  }`}
+                >
+                  <ResponseContent content={response} isDark={isDark} />
                 </div>
               )}
             </div>
