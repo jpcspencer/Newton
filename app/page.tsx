@@ -108,7 +108,9 @@ export default function Home() {
     setIsDark(stored === "dark");
   }, []);
 
-  useEffect(() => {
+  const fetchFeed = useCallback(() => {
+    setFeedLoading(true);
+    setFeedError(null);
     fetch("/api/feed")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load feed");
@@ -118,6 +120,15 @@ export default function Home() {
       .catch((err) => setFeedError(err instanceof Error ? err.message : "Failed to load feed"))
       .finally(() => setFeedLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetchFeed();
+  }, [fetchFeed]);
+
+  useEffect(() => {
+    const interval = setInterval(fetchFeed, 10 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchFeed]);
 
   function toggleTheme() {
     const next = !isDark;
@@ -285,7 +296,36 @@ export default function Home() {
           className="flex min-w-full shrink-0 snap-start snap-always flex-col items-center pb-8"
         >
           <div className="flex w-full max-w-xl flex-col items-center gap-4 sm:gap-5">
-            {feedLoading && (
+            <div className="flex w-full items-center justify-end">
+              <button
+                type="button"
+                onClick={fetchFeed}
+                disabled={feedLoading}
+                aria-label="Refresh feed"
+                className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-2 disabled:opacity-50 ${
+                  isDark
+                    ? "text-[#a3a3a3] hover:text-[#ededed] focus:ring-offset-[#0a0a0a]"
+                    : "text-[#737373] hover:text-[#525252] focus:ring-offset-white"
+                }`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`h-4 w-4 ${feedLoading ? "animate-spin" : ""}`}
+                >
+                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                  <path d="M16 21h5v-5" />
+                </svg>
+              </button>
+            </div>
+            {feedLoading && feedArticles.length === 0 && (
               <div className="flex w-full items-center justify-center py-16">
                 <div className={`flex items-center gap-2 ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}>
                   <svg
@@ -316,11 +356,10 @@ export default function Home() {
             {feedError && !feedLoading && (
               <p className={`w-full py-8 text-center text-sm ${isDark ? "text-red-400" : "text-red-600"}`}>{feedError}</p>
             )}
-            {!feedLoading && !feedError && feedArticles.length === 0 && (
+            {!feedError && feedArticles.length === 0 && !feedLoading && (
               <p className={`w-full py-8 text-center text-sm ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}>No articles to show.</p>
             )}
-            {!feedLoading &&
-              !feedError &&
+            {!feedError &&
               feedArticles.map((article, index) => {
                 const importance = getImportanceScore(article.title);
                 return (

@@ -30,13 +30,10 @@ export async function GET() {
     }
 
     const url =
-      "https://newsapi.org/v2/everything?q=artificial+intelligence&sortBy=publishedAt&language=en&pageSize=10";
+      "https://newsapi.org/v2/everything?q=(artificial+intelligence+OR+science+OR+space+OR+biotech+OR+physics+OR+climate+technology)&sortBy=publishedAt&language=en&pageSize=20&apiKey=" +
+      apiKey;
 
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-    });
+    const res = await fetch(url);
 
     const data = (await res.json()) as {
       status?: string;
@@ -52,6 +49,7 @@ export async function GET() {
     }
 
     const articles = data.articles ?? [];
+    const seenTitles = new Set<string>();
     const cleaned: CleanArticle[] = articles
       .filter((a): a is NewsApiArticle & { description: string } => {
         return Boolean(a.description?.trim());
@@ -62,7 +60,13 @@ export async function GET() {
         sourceName: a.source?.name ?? "Unknown",
         publishedAt: a.publishedAt ?? "",
         url: a.url ?? "",
-      }));
+      }))
+      .filter((a) => {
+        const normalized = a.title.trim().toLowerCase();
+        if (seenTitles.has(normalized)) return false;
+        seenTitles.add(normalized);
+        return true;
+      });
 
     return NextResponse.json(cleaned);
   } catch (error) {
