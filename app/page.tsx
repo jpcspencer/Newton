@@ -88,8 +88,12 @@ function ResponseContent({ content, isDark }: { content: string; isDark: boolean
 }
 
 type Panel = "feed" | "newton";
+type CardSize = "compact" | "default" | "comfortable";
+type FeedView = "card" | "list";
 
 const THEME_STORAGE_KEY = "newton-theme";
+
+const CARD_SIZE_ORDER: CardSize[] = ["compact", "default", "comfortable"];
 
 export default function Home() {
   const [isDark, setIsDark] = useState(false);
@@ -101,7 +105,17 @@ export default function Home() {
   const [feedArticles, setFeedArticles] = useState<FeedArticle[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [feedError, setFeedError] = useState<string | null>(null);
+  const [cardSize, setCardSize] = useState<CardSize>("default");
+  const [feedView, setFeedView] = useState<FeedView>("card");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  function cycleCardSize() {
+    setCardSize((prev) => CARD_SIZE_ORDER[(CARD_SIZE_ORDER.indexOf(prev) + 1) % CARD_SIZE_ORDER.length]);
+  }
+
+  function toggleFeedView() {
+    setFeedView((prev) => (prev === "card" ? "list" : "card"));
+  }
 
   useEffect(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
@@ -296,11 +310,58 @@ export default function Home() {
           className="flex min-w-full shrink-0 snap-start snap-always flex-col items-center pb-8"
         >
           <div className="flex w-full max-w-xl flex-col items-center gap-4 sm:gap-5">
-            <div className="flex w-full items-center justify-end">
+            <div className="flex w-full items-center justify-end gap-0.5">
+              <button
+                type="button"
+                onClick={cycleCardSize}
+                title={`Card size: ${cardSize.charAt(0).toUpperCase() + cardSize.slice(1)}`}
+                aria-label={`Card size: ${cardSize}`}
+                className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-2 ${
+                  isDark
+                    ? "text-[#a3a3a3] hover:text-[#ededed] focus:ring-offset-[#0a0a0a]"
+                    : "text-[#737373] hover:text-[#525252] focus:ring-offset-white"
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <path d="M4 6h16" />
+                  <path d="M4 12h16" />
+                  <path d="M4 18h16" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={toggleFeedView}
+                title={feedView === "card" ? "Switch to list view" : "Switch to card view"}
+                aria-label={feedView === "card" ? "Switch to list view" : "Switch to card view"}
+                className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-2 ${
+                  isDark
+                    ? "text-[#a3a3a3] hover:text-[#ededed] focus:ring-offset-[#0a0a0a]"
+                    : "text-[#737373] hover:text-[#525252] focus:ring-offset-white"
+                }`}
+              >
+                {feedView === "card" ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <line x1="8" x2="21" y1="6" y2="6" />
+                    <line x1="8" x2="21" y1="12" y2="12" />
+                    <line x1="8" x2="21" y1="18" y2="18" />
+                    <line x1="3" x2="3.01" y1="6" y2="6" />
+                    <line x1="3" x2="3.01" y1="12" y2="12" />
+                    <line x1="3" x2="3.01" y1="18" y2="18" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <rect width="7" height="7" x="3" y="3" rx="1" />
+                    <rect width="7" height="7" x="14" y="3" rx="1" />
+                    <rect width="7" height="7" x="14" y="14" rx="1" />
+                    <rect width="7" height="7" x="3" y="14" rx="1" />
+                  </svg>
+                )}
+              </button>
               <button
                 type="button"
                 onClick={fetchFeed}
                 disabled={feedLoading}
+                title="Refresh feed"
                 aria-label="Refresh feed"
                 className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-2 disabled:opacity-50 ${
                   isDark
@@ -359,62 +420,147 @@ export default function Home() {
             {!feedError && feedArticles.length === 0 && !feedLoading && (
               <p className={`w-full py-8 text-center text-sm ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}>No articles to show.</p>
             )}
-            {!feedError &&
-              feedArticles.map((article, index) => {
-                const importance = getImportanceScore(article.title);
-                return (
-                <article
-                  key={article.url || index}
-                  className={`relative w-full rounded-lg border px-5 py-5 transition-shadow sm:px-6 sm:py-6 ${
-                    isDark
-                      ? "border-[#262626] bg-[#171717] hover:shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
-                      : "border-[#e8e8e8] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
-                  }`}
-                >
-                  <div
-                    className="absolute right-5 top-5 flex gap-0.5 sm:right-6 sm:top-6"
-                    aria-label={`Importance: ${importance} of 5`}
-                  >
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <span
-                        key={i}
-                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                          i <= importance
-                            ? "bg-[#ededed]"
-                            : isDark
-                              ? "border border-[#404040] bg-transparent"
-                              : "border border-[#d4d4d4] bg-transparent"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className={`mb-3 inline-block text-xs font-medium uppercase tracking-wider ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}>
-                    {article.sourceName}
-                  </span>
-                  <h2 className={`mb-2 font-serif text-xl font-normal leading-tight sm:text-2xl ${isDark ? "text-[#ededed]" : "text-[#171717]"}`}>
-                    {article.title}
-                  </h2>
-                  <p className={`mb-4 text-[15px] leading-relaxed ${isDark ? "text-[#a3a3a3]" : "text-[#525252]"}`}>
-                    {article.description}
-                  </p>
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+            {!feedError && feedView === "list" && (
+              <div
+                className={`w-full rounded-lg border ${
+                  isDark ? "border-[#262626] bg-[#171717]" : "border-[#e8e8e8] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                }`}
+              >
+                {feedArticles.map((article, index) => {
+                  const importance = getImportanceScore(article.title);
+                  const mutedCls = isDark ? "text-[#a3a3a3]" : "text-[#737373]";
+                  const textCls = isDark ? "text-[#ededed]" : "text-[#171717]";
+                  return (
                     <button
+                      key={article.url || index}
                       type="button"
                       onClick={() => handleGoDeeper(article.title)}
-                      className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
-                        isDark
-                          ? "border-[#ededed] bg-transparent text-[#ededed] hover:bg-[#ededed] hover:text-[#171717]"
-                          : "border-[#171717] bg-white text-[#171717] hover:bg-[#171717] hover:text-white"
+                      className={`flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-colors first:rounded-t-lg last:border-b-0 last:rounded-b-lg ${
+                        isDark ? "border-[#262626] hover:bg-[#262626]" : "border-[#e8e8e8] hover:bg-[#fafafa]"
                       }`}
                     >
-                      Go deeper with Newton
+                      <span className={`shrink-0 text-xs font-medium uppercase tracking-wider ${mutedCls}`} style={{ minWidth: "4.5rem" }}>
+                        {article.sourceName}
+                      </span>
+                      <span className={`min-w-0 flex-1 truncate font-serif text-sm ${textCls}`}>
+                        {article.title}
+                      </span>
+                      <div className="flex shrink-0 gap-0.5" aria-hidden>
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <span
+                            key={i}
+                            className={`h-1 w-1 shrink-0 rounded-full ${
+                              i <= importance
+                                ? isDark
+                                  ? "bg-[#ededed]"
+                                  : "bg-[#171717]"
+                                : isDark
+                                  ? "border border-[#404040] bg-transparent"
+                                  : "border border-[#d4d4d4] bg-transparent"
+                            }`}
+                          />
+                        ))}
+                      </div>
                     </button>
-                    <time className={`text-xs ${isDark ? "text-[#737373]" : "text-[#a3a3a3]"}`} dateTime={article.publishedAt}>
-                      {formatRelativeTime(article.publishedAt)}
-                    </time>
-                  </div>
-                </article>
-              );
+                  );
+                })}
+              </div>
+            )}
+            {!feedError &&
+              feedView === "card" &&
+              feedArticles.map((article, index) => {
+                const importance = getImportanceScore(article.title);
+                const mutedCls = isDark ? "text-[#a3a3a3]" : "text-[#737373]";
+                const textCls = isDark ? "text-[#ededed]" : "text-[#171717]";
+                const borderCls = isDark
+                  ? "border-[#262626] bg-[#171717] hover:border-[#404040]"
+                  : "border-[#e8e8e8] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]";
+
+                const isCompact = cardSize === "compact";
+                const isComfortable = cardSize === "comfortable";
+
+                return (
+                  <article
+                    key={article.url || index}
+                    className={`relative w-full rounded-lg border transition-shadow ${borderCls} ${
+                      isCompact ? "px-4 py-3 sm:px-4 sm:py-3" : isComfortable ? "px-6 py-6 sm:px-8 sm:py-7" : "px-5 py-5 sm:px-6 sm:py-6"
+                    }`}
+                  >
+                    <div
+                      className={`absolute flex gap-0.5 ${isCompact ? "right-4 top-3" : isComfortable ? "right-6 top-6 sm:right-8 sm:top-7" : "right-5 top-5 sm:right-6 sm:top-6"}`}
+                      aria-label={`Importance: ${importance} of 5`}
+                    >
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <span
+                          key={i}
+                          className={`shrink-0 rounded-full ${
+                            isCompact ? "h-1 w-1" : "h-1.5 w-1.5"
+                          } ${
+                            i <= importance
+                              ? isDark
+                                ? "bg-[#ededed]"
+                                : "bg-[#171717]"
+                              : isDark
+                                ? "border border-[#404040] bg-transparent"
+                                : "border border-[#d4d4d4] bg-transparent"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className={`inline-block text-xs font-medium uppercase tracking-wider ${mutedCls} ${isCompact ? "mb-1" : isComfortable ? "mb-4" : "mb-3"}`}>
+                      {article.sourceName}
+                    </span>
+                    <h2
+                      className={`font-serif font-normal leading-tight ${textCls} ${
+                        isCompact
+                          ? "text-base sm:text-lg"
+                          : isComfortable
+                            ? "text-2xl sm:text-3xl mb-3"
+                            : "mb-2 text-xl sm:text-2xl"
+                      }`}
+                    >
+                      {article.title}
+                    </h2>
+                    {!isCompact && (
+                      <p className={`leading-relaxed ${isDark ? "text-[#a3a3a3]" : "text-[#525252]"} ${isComfortable ? "mb-5 text-[17px]" : "mb-4 text-[15px]"}`}>
+                        {article.description}
+                      </p>
+                    )}
+                    {!isCompact && (
+                      <div className={`flex flex-wrap items-center justify-between gap-3 ${isComfortable ? "mt-1" : ""}`}>
+                        <button
+                          type="button"
+                          onClick={() => handleGoDeeper(article.title)}
+                          className={`rounded-full border px-4 py-2 font-medium transition-colors ${
+                            isComfortable ? "text-base" : "text-sm"
+                          } ${
+                            isDark
+                              ? "border-[#ededed] bg-transparent text-[#ededed] hover:bg-[#ededed] hover:text-[#171717]"
+                              : "border-[#171717] bg-white text-[#171717] hover:bg-[#171717] hover:text-white"
+                          }`}
+                        >
+                          Go deeper with Newton
+                        </button>
+                        <time className={`text-xs ${isDark ? "text-[#737373]" : "text-[#a3a3a3]"}`} dateTime={article.publishedAt}>
+                          {formatRelativeTime(article.publishedAt)}
+                        </time>
+                      </div>
+                    )}
+                    {isCompact && (
+                      <button
+                        type="button"
+                        onClick={() => handleGoDeeper(article.title)}
+                        className={`mt-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                          isDark
+                            ? "border-[#ededed] bg-transparent text-[#ededed] hover:bg-[#ededed] hover:text-[#171717]"
+                            : "border-[#171717] bg-white text-[#171717] hover:bg-[#171717] hover:text-white"
+                        }`}
+                      >
+                        Go deeper with Newton
+                      </button>
+                    )}
+                  </article>
+                );
               })}
           </div>
         </section>
