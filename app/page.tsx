@@ -195,41 +195,36 @@ export default function Home() {
       .finally(() => setFeedLoading(false));
   }, []);
 
-  const fetchFeedSilently = useCallback(() => {
-    fetch("/api/feed")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load feed");
-        return res.json();
-      })
-      .then((data: FeedArticle[]) => {
-        const seen = new Set<string>();
-        const deduped = data.filter((a) => {
-          const key = a.title.trim().toLowerCase();
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        const currentTitles = new Set(feedArticlesRef.current.map((a) => a.title.trim().toLowerCase()));
-        const fresh = deduped.filter((a) => !currentTitles.has(a.title.trim().toLowerCase()));
-        if (fresh.length > 0) {
-          setNewStories((prev) => {
-            const prevTitles = new Set(prev.map((a) => a.title.trim().toLowerCase()));
-            const brandNew = fresh.filter((a) => !prevTitles.has(a.title.trim().toLowerCase()));
-            return [...brandNew, ...prev];
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
-
   useEffect(() => {
     fetchFeed();
-  }, [fetchFeed]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- intentional: fetch once on mount
 
   useEffect(() => {
-    const interval = setInterval(fetchFeedSilently, 5 * 60 * 1000);
+    const interval = setInterval(() => {
+      fetch("/api/feed")
+        .then((res) => res.ok ? res.json() : Promise.reject(new Error("Failed")))
+        .then((data: FeedArticle[]) => {
+          const seen = new Set<string>();
+          const deduped = data.filter((a) => {
+            const key = a.title.trim().toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          const currentTitles = new Set(feedArticlesRef.current.map((a) => a.title.trim().toLowerCase()));
+          const fresh = deduped.filter((a) => !currentTitles.has(a.title.trim().toLowerCase()));
+          if (fresh.length > 0) {
+            setNewStories((prev) => {
+              const prevTitles = new Set(prev.map((a) => a.title.trim().toLowerCase()));
+              const brandNew = fresh.filter((a) => !prevTitles.has(a.title.trim().toLowerCase()));
+              return [...brandNew, ...prev];
+            });
+          }
+        })
+        .catch(() => {});
+    }, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [fetchFeedSilently]);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -330,11 +325,11 @@ export default function Home() {
 
   return (
     <div
-      className={`flex min-h-screen w-full justify-center transition-colors duration-200 ${
+      className={`flex min-h-screen w-full flex-col transition-colors duration-200 ${
         isDark ? "bg-[#111110]" : "bg-[#f8f7f5]"
       }`}
     >
-      <div className={`flex w-full max-w-[680px] flex-col mx-auto`}>
+      <div className="mx-auto flex w-full max-w-[680px] flex-1 flex-col">
       {/* Article expansion modal */}
       {expandedArticle && (
         <div
