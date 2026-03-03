@@ -58,11 +58,11 @@ function getTextContent(children: React.ReactNode): string {
 }
 
 function ResponseContent({ content, isDark }: { content: string; isDark: boolean }) {
-  const textCls = isDark ? "text-[#ededed]" : "text-[#171717]";
+  const textCls = isDark ? "text-[#edebe8]" : "text-[#1a1a1a]";
   const highlightCls = isDark
-    ? "border-[#404040] bg-[#262626]"
-    : "border-[#e5e0da] bg-[#f5f2ee]";
-  const strongCls = isDark ? "font-semibold text-[#ededed]" : "font-semibold text-[#171717]";
+    ? "bg-[#1c1c1b] shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
+    : "bg-[#ffffff] shadow-[0_1px_3px_rgba(0,0,0,0.06)]";
+  const strongCls = isDark ? "font-semibold text-[#edebe8]" : "font-semibold text-[#1a1a1a]";
   return (
     <ReactMarkdown
       components={{
@@ -70,8 +70,8 @@ function ResponseContent({ content, isDark }: { content: string; isDark: boolean
           const text = getTextContent(children);
           if (text.trimStart().startsWith("⚡ NoC")) {
             return (
-              <div className={`mt-4 rounded-lg border px-4 py-3.5 first:mt-0 ${highlightCls}`}>
-                <p className={`text-[15px] leading-relaxed [&>strong]:font-bold ${textCls}`}>
+              <div className={`mt-4 rounded-lg px-4 py-3.5 first:mt-0 ${highlightCls}`}>
+                <p className={`text-sm leading-relaxed [&>strong]:font-bold ${textCls}`}>
                   {children}
                 </p>
               </div>
@@ -83,7 +83,7 @@ function ResponseContent({ content, isDark }: { content: string; isDark: boolean
         em: ({ children }) => <em className="italic">{children}</em>,
         ul: ({ children }) => <ul className="my-3 list-disc pl-5 space-y-1">{children}</ul>,
         ol: ({ children }) => <ol className="my-3 list-decimal pl-5 space-y-1">{children}</ol>,
-        li: ({ children }) => <li className={`text-[15px] leading-relaxed ${textCls}`}>{children}</li>,
+        li: ({ children }) => <li className={`text-sm leading-relaxed ${textCls}`}>{children}</li>,
       }}
     >
       {content}
@@ -309,7 +309,7 @@ export default function Home() {
   return (
     <div
       className={`flex min-h-screen w-full flex-col transition-colors duration-200 ${
-        isDark ? "bg-[#0a0a0a]" : "bg-white"
+        isDark ? "bg-[#111110]" : "bg-[#f8f7f5]"
       }`}
     >
       {/* Article expansion modal */}
@@ -326,8 +326,8 @@ export default function Home() {
             aria-hidden="true"
           />
           <div
-            className={`relative max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg border shadow-xl animate-[modal-fade-in_0.2s_ease-out] ${
-              isDark ? "border-[#404040] bg-[#171717]" : "border-[#e8e8e8] bg-white"
+            className={`relative max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.12)] animate-[modal-fade-in_0.2s_ease-out] ${
+              isDark ? "bg-[#1c1c1b]" : "bg-[#ffffff] shadow-[0_4px_24px_rgba(0,0,0,0.08)]"
             }`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -335,53 +335,53 @@ export default function Home() {
               type="button"
               onClick={() => setExpandedArticle(null)}
               aria-label="Close"
-              className={`absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:opacity-70 ${
-                isDark ? "text-[#a3a3a3] hover:text-[#ededed]" : "text-[#737373] hover:text-[#525252]"
+              className={`absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:opacity-70 ${
+                isDark ? "text-[#888886] hover:text-[#edebe8]" : "text-[#6b6b6b] hover:text-[#1a1a1a]"
               }`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
                 <path d="M18 6 6 18" />
                 <path d="m6 6 12 12" />
               </svg>
             </button>
             <div className="px-6 py-6 pr-14 sm:px-8 sm:py-8 sm:pr-16">
-              <span className={`mb-2 inline-block text-xs font-medium uppercase tracking-wider ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}>
-                {expandedArticle.tag}
-              </span>
-              <h2 id="modal-title" className={`mb-2 font-serif text-2xl font-normal leading-tight sm:text-3xl ${isDark ? "text-[#ededed]" : "text-[#171717]"}`}>
-                {expandedArticle.title}
-              </h2>
-              <div className="mb-4 flex items-center gap-3">
-                <time className={`text-xs ${isDark ? "text-[#737373]" : "text-[#a3a3a3]"}`} dateTime={expandedArticle.publishedAt}>
-                  {formatRelativeTime(expandedArticle.publishedAt)}
-                </time>
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className={`text-xs font-medium uppercase tracking-[0.15em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`}>
+                  {expandedArticle.tag}
+                </span>
                 <div className="flex gap-0.5" aria-label={`Importance: ${expandedArticle.importance} of 5`}>
                   {[1, 2, 3, 4, 5].map((i) => (
                     <span
                       key={i}
-                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                      className={`h-1 w-1 shrink-0 rounded-full ${
                         i <= expandedArticle.importance
                           ? isDark
-                            ? "bg-[#ededed]"
-                            : "bg-[#171717]"
+                            ? "bg-[#edebe8]"
+                            : "bg-[#1a1a1a]"
                           : isDark
-                            ? "border border-[#404040] bg-transparent"
+                            ? "border border-[#3a3a39] bg-transparent"
                             : "border border-[#d4d4d4] bg-transparent"
                       }`}
                     />
                   ))}
                 </div>
+                <time className={`text-xs ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`} dateTime={expandedArticle.publishedAt}>
+                  {formatRelativeTime(expandedArticle.publishedAt)}
+                </time>
               </div>
-              <p className={`mb-6 text-[15px] leading-relaxed ${isDark ? "text-[#a3a3a3]" : "text-[#525252]"}`}>
+              <h2 id="modal-title" className={`mb-2 font-serif text-xl font-medium leading-tight sm:text-2xl ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>
+                {expandedArticle.title}
+              </h2>
+              <p className={`mb-6 text-sm leading-relaxed ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>
                 {expandedArticle.newtonSummary}
               </p>
               {expandedArticle.noc && (
                 <div
-                  className={`mb-6 rounded-lg border px-4 py-3.5 ${
-                    isDark ? "border-[#404040] bg-[#262626]" : "border-[#e5e0da] bg-[#f5f2ee]"
+                  className={`mb-6 rounded-lg px-4 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${
+                    isDark ? "bg-[#1c1c1b]" : "bg-[#ffffff]"
                   }`}
                 >
-                  <p className={`text-[15px] leading-relaxed ${isDark ? "text-[#ededed]" : "text-[#171717]"}`}>
+                  <p className={`text-sm leading-relaxed ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>
                     <span className="font-semibold">⚡ NoC: </span>
                     {expandedArticle.noc}
                   </p>
@@ -415,10 +415,10 @@ export default function Home() {
                         scrollToPanel("newton");
                         submitQuery(question);
                       }}
-                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                         isDark
-                          ? "bg-[#262626] text-[#ededed] hover:bg-[#404040]"
-                          : "bg-[#e5e5e5] text-[#171717] hover:bg-[#d4d4d4]"
+                          ? "border-[#3a3a39] bg-transparent text-[#edebe8] hover:bg-[#262625]"
+                          : "border-[#d4d4d4] bg-transparent text-[#1a1a1a] hover:bg-[#f0f0ef]"
                       }`}
                     >
                       {label}
@@ -429,8 +429,8 @@ export default function Home() {
                   href={expandedArticle.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`inline-flex w-fit items-center gap-1.5 text-sm font-medium transition-colors ${
-                    isDark ? "text-[#a3a3a3] hover:text-[#ededed]" : "text-[#525252] hover:text-[#171717]"
+                  className={`inline-flex w-fit items-center gap-1.5 text-xs transition-colors ${
+                    isDark ? "text-[#888886] hover:text-[#edebe8]" : "text-[#6b6b6b] hover:text-[#1a1a1a]"
                   }`}
                 >
                   Read original article
@@ -447,28 +447,28 @@ export default function Home() {
         type="button"
         onClick={toggleTheme}
         aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-        className={`fixed right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-2 ${
+        className={`fixed right-4 top-4 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-0 ${
           isDark
-            ? "text-[#a3a3a3] hover:text-[#ededed] focus:ring-offset-[#0a0a0a]"
-            : "text-[#737373] hover:text-[#525252] focus:ring-offset-white"
+            ? "text-[#888886] hover:text-[#edebe8]"
+            : "text-[#6b6b6b] hover:text-[#1a1a1a]"
         }`}
       >
         {isDark ? (
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5">
             <path d="M12 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 12a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM18.894 6.166a.75.75 0 0 0-1.06-1.06l-1.591 1.59a.75.75 0 1 0 1.06 1.061l1.591-1.59ZM21.75 12a.75.75 0 0 1-.75.75h-2.25a.75.75 0 0 1 0-1.5H21a.75.75 0 0 1 .75.75ZM17.834 18.894a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 1 0-1.061 1.06l1.59 1.591ZM12 18a.75.75 0 0 1 .75.75V21a.75.75 0 0 1-1.5 0v-2.25A.75.75 0 0 1 12 18ZM7.758 17.303a.75.75 0 0 0-1.061-1.06l-1.591 1.59a.75.75 0 0 0 1.06 1.061l1.591-1.59ZM6 12a.75.75 0 0 1-.75.75H3a.75.75 0 0 1 0-1.5h2.25A.75.75 0 0 1 6 12ZM6.697 7.757a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 0 0-1.061 1.06l1.59 1.591Z" />
           </svg>
         ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5">
             <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 0 1 .162.819A8.97 8.97 0 0 0 9 6a9 9 0 0 0 9 9 8.97 8.97 0 0 0 3.463-.69.75.75 0 0 1 .981.98 10.503 10.503 0 0 1-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 0 1 .818.162Z" clipRule="evenodd" />
           </svg>
         )}
       </button>
 
-      <header className="flex shrink-0 flex-col items-center px-4 pt-12 pb-6 sm:px-6 sm:pb-8">
+      <header className="flex shrink-0 flex-col items-center px-4 pt-10 pb-5 sm:px-6 sm:pb-6">
         {/* Logo */}
         <h1
-          className={`mb-6 font-serif text-5xl font-normal tracking-tight sm:mb-8 sm:text-6xl md:text-7xl ${
-            isDark ? "text-[#ededed]" : "text-[#171717]"
+          className={`mb-4 font-serif text-3xl font-normal tracking-tight sm:mb-5 sm:text-4xl ${
+            isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"
           }`}
         >
           Newton
@@ -478,18 +478,21 @@ export default function Home() {
         <div
           role="tablist"
           aria-label="Switch between Feed and Newton"
-          className="flex gap-1"
+          className="flex gap-6 border-b"
+          style={isDark ? { borderColor: "#2a2a29" } : { borderColor: "#e5e4e2" }}
         >
           <button
             role="tab"
             aria-selected={activePanel === "feed"}
             onClick={() => scrollToPanel("feed")}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors duration-200 ${
+            className={`pb-2.5 text-xs font-medium transition-colors duration-200 ${
               activePanel === "feed"
-                ? "bg-[#171717] text-white"
+                ? isDark
+                  ? "text-[#edebe8] border-b-[1.5px] border-[#edebe8] -mb-[1.5px]"
+                  : "text-[#1a1a1a] border-b-[1.5px] border-[#1a1a1a] -mb-[1.5px]"
                 : isDark
-                  ? "text-[#a3a3a3] hover:text-[#ededed]"
-                  : "text-[#737373] hover:text-[#525252]"
+                  ? "text-[#888886] hover:text-[#edebe8]"
+                  : "text-[#6b6b6b] hover:text-[#1a1a1a]"
             }`}
           >
             Feed
@@ -498,12 +501,14 @@ export default function Home() {
             role="tab"
             aria-selected={activePanel === "newton"}
             onClick={() => scrollToPanel("newton")}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors duration-200 ${
+            className={`pb-2.5 text-xs font-medium transition-colors duration-200 ${
               activePanel === "newton"
-                ? "bg-[#171717] text-white"
+                ? isDark
+                  ? "text-[#edebe8] border-b-[1.5px] border-[#edebe8] -mb-[1.5px]"
+                  : "text-[#1a1a1a] border-b-[1.5px] border-[#1a1a1a] -mb-[1.5px]"
                 : isDark
-                  ? "text-[#a3a3a3] hover:text-[#ededed]"
-                  : "text-[#737373] hover:text-[#525252]"
+                  ? "text-[#888886] hover:text-[#edebe8]"
+                  : "text-[#6b6b6b] hover:text-[#1a1a1a]"
             }`}
           >
             Newton
@@ -523,18 +528,18 @@ export default function Home() {
           aria-label="Feed"
           className="flex min-w-full shrink-0 snap-start snap-always flex-col items-center pb-8"
         >
-          <div className="flex w-full max-w-xl flex-col items-center gap-4 sm:gap-5">
-            <div className="flex w-full items-center justify-end gap-1">
-              <div className="flex items-center gap-1.5">
+          <div className="flex w-full max-w-xl flex-col items-center gap-3 sm:gap-4">
+            <div className="flex w-full items-center justify-end gap-0.5">
+              <div className="flex items-center gap-1">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className={`h-3.5 w-3.5 shrink-0 ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}
+                  className={`h-3 w-3 shrink-0 ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}
                 >
                   <path d="m3 16 4 4 4-4" />
                   <path d="M7 20V4" />
@@ -548,8 +553,8 @@ export default function Home() {
                   title={`Sort by ${feedSort}`}
                   className={`cursor-pointer appearance-none rounded border-0 bg-transparent py-1 pr-5 text-xs font-medium focus:outline-none focus:ring-0 ${
                     isDark
-                      ? "text-[#a3a3a3] hover:text-[#ededed]"
-                      : "text-[#737373] hover:text-[#525252]"
+                      ? "text-[#888886] hover:text-[#edebe8]"
+                      : "text-[#6b6b6b] hover:text-[#1a1a1a]"
                   }`}
                   style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
@@ -567,13 +572,13 @@ export default function Home() {
                 onClick={cycleCardSize}
                 title={`Card size: ${cardSize.charAt(0).toUpperCase() + cardSize.slice(1)}`}
                 aria-label={`Card size: ${cardSize}`}
-                className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:opacity-80 focus:outline-none focus:ring-0 ${
+                className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:opacity-80 focus:outline-none focus:ring-0 ${
                   isDark
-                    ? "text-[#a3a3a3] hover:text-[#ededed]"
-                    : "text-[#737373] hover:text-[#525252]"
+                    ? "text-[#888886] hover:text-[#edebe8]"
+                    : "text-[#6b6b6b] hover:text-[#1a1a1a]"
                 }`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
                   <path d="M4 6h16" />
                   <path d="M4 12h16" />
                   <path d="M4 18h16" />
@@ -584,14 +589,14 @@ export default function Home() {
                 onClick={toggleFeedView}
                 title={feedView === "card" ? "Switch to list view" : "Switch to card view"}
                 aria-label={feedView === "card" ? "Switch to list view" : "Switch to card view"}
-                className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:opacity-80 focus:outline-none focus:ring-0 ${
+                className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:opacity-80 focus:outline-none focus:ring-0 ${
                   isDark
-                    ? "text-[#a3a3a3] hover:text-[#ededed]"
-                    : "text-[#737373] hover:text-[#525252]"
+                    ? "text-[#888886] hover:text-[#edebe8]"
+                    : "text-[#6b6b6b] hover:text-[#1a1a1a]"
                 }`}
               >
                 {feedView === "card" ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
                     <line x1="8" x2="21" y1="6" y2="6" />
                     <line x1="8" x2="21" y1="12" y2="12" />
                     <line x1="8" x2="21" y1="18" y2="18" />
@@ -600,7 +605,7 @@ export default function Home() {
                     <line x1="3" x2="3.01" y1="18" y2="18" />
                   </svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
                     <rect width="7" height="7" x="3" y="3" rx="1" />
                     <rect width="7" height="7" x="14" y="3" rx="1" />
                     <rect width="7" height="7" x="14" y="14" rx="1" />
@@ -614,10 +619,10 @@ export default function Home() {
                 disabled={feedLoading}
                 title="Refresh feed"
                 aria-label="Refresh feed"
-                className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:opacity-80 focus:outline-none focus:ring-0 disabled:opacity-50 ${
+                className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:opacity-80 focus:outline-none focus:ring-0 disabled:opacity-50 ${
                   isDark
-                    ? "text-[#a3a3a3] hover:text-[#ededed]"
-                    : "text-[#737373] hover:text-[#525252]"
+                    ? "text-[#888886] hover:text-[#edebe8]"
+                    : "text-[#6b6b6b] hover:text-[#1a1a1a]"
                 }`}
               >
                 <svg
@@ -625,10 +630,10 @@ export default function Home() {
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className={`h-4 w-4 ${feedLoading ? "animate-spin" : ""}`}
+                  className={`h-3.5 w-3.5 ${feedLoading ? "animate-spin" : ""}`}
                 >
                   <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                   <path d="M3 3v5h5" />
@@ -644,10 +649,10 @@ export default function Home() {
                   setFeedArticles((prev) => [...newStories, ...prev]);
                   setNewStories([]);
                 }}
-                className={`w-full rounded-full px-4 py-2 text-xs font-medium transition-colors ${
+                className={`w-full rounded-full px-3 py-1.5 text-xs font-medium transition-colors shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${
                   isDark
-                    ? "bg-[#262626] text-[#a3a3a3] hover:bg-[#404040] hover:text-[#ededed]"
-                    : "bg-[#e8e8e8] text-[#525252] hover:bg-[#d4d4d4] hover:text-[#171717]"
+                    ? "bg-[#1c1c1b] text-[#888886] hover:bg-[#262625] hover:text-[#edebe8]"
+                    : "bg-[#ffffff] text-[#6b6b6b] hover:bg-[#f0f0ef] hover:text-[#1a1a1a]"
                 }`}
               >
                 ↑ {newStories.length} new {newStories.length === 1 ? "story" : "stories"}
@@ -655,7 +660,7 @@ export default function Home() {
             )}
             {feedLoading && feedArticles.length === 0 && (
               <div className="flex w-full items-center justify-center py-16">
-                <div className={`flex items-center gap-2 ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}>
+                <div className={`flex items-center gap-2 ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>
                   <svg
                     className="h-5 w-5 animate-spin"
                     xmlns="http://www.w3.org/2000/svg"
@@ -685,30 +690,30 @@ export default function Home() {
               <p className={`w-full py-8 text-center text-sm ${isDark ? "text-red-400" : "text-red-600"}`}>{feedError}</p>
             )}
             {!feedError && feedArticles.length === 0 && !feedLoading && (
-              <p className={`w-full py-8 text-center text-sm ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}>No articles to show.</p>
+              <p className={`w-full py-8 text-center text-sm ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>No articles to show.</p>
             )}
             {!feedError && feedView === "list" && (
               <div
-                className={`w-full rounded-lg border ${
-                  isDark ? "border-[#262626] bg-[#171717]" : "border-[#e8e8e8] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                className={`w-full rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${
+                  isDark ? "bg-[#1c1c1b]" : "bg-[#ffffff]"
                 }`}
               >
                 {sortedArticles.map((article, index) => {
-                  const mutedCls = isDark ? "text-[#a3a3a3]" : "text-[#737373]";
-                  const textCls = isDark ? "text-[#ededed]" : "text-[#171717]";
+                  const mutedCls = isDark ? "text-[#888886]" : "text-[#6b6b6b]";
+                  const textCls = isDark ? "text-[#edebe8]" : "text-[#1a1a1a]";
                   return (
                     <button
                       key={article.url || index}
                       type="button"
                       onClick={() => handleGoDeeper(article.title)}
                       className={`flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-colors first:rounded-t-lg last:border-b-0 last:rounded-b-lg ${
-                        isDark ? "border-[#262626] hover:bg-[#262626]" : "border-[#e8e8e8] hover:bg-[#fafafa]"
+                        isDark ? "border-[#2a2a29] hover:bg-[#252524]" : "border-[#f0f0ef] hover:bg-[#fafaf9]"
                       }`}
                     >
-                      <span className={`shrink-0 text-xs font-medium uppercase tracking-wider ${mutedCls}`} style={{ minWidth: "4.5rem" }}>
+                      <span className={`shrink-0 text-xs font-medium uppercase tracking-[0.1em] ${mutedCls}`} style={{ minWidth: "4rem" }}>
                         {article.tag}
                       </span>
-                      <span className={`min-w-0 flex-1 truncate font-serif text-sm ${textCls}`}>
+                      <span className={`min-w-0 flex-1 truncate font-serif text-sm font-medium ${textCls}`}>
                         {article.title}
                       </span>
                       <div className="flex shrink-0 gap-0.5" aria-hidden>
@@ -718,10 +723,10 @@ export default function Home() {
                             className={`h-1 w-1 shrink-0 rounded-full ${
                               i <= article.importance
                                 ? isDark
-                                  ? "bg-[#ededed]"
-                                  : "bg-[#171717]"
+                                  ? "bg-[#edebe8]"
+                                  : "bg-[#1a1a1a]"
                                 : isDark
-                                  ? "border border-[#404040] bg-transparent"
+                                  ? "border border-[#3a3a39] bg-transparent"
                                   : "border border-[#d4d4d4] bg-transparent"
                             }`}
                           />
@@ -733,142 +738,104 @@ export default function Home() {
               </div>
             )}
             {!feedError &&
-              feedView === "card" &&
-              sortedArticles.map((article, index) => {
-                const mutedCls = isDark ? "text-[#a3a3a3]" : "text-[#737373]";
-                const textCls = isDark ? "text-[#ededed]" : "text-[#171717]";
-                const borderCls = isDark
-                  ? "border-[#262626] bg-[#171717] hover:border-[#404040]"
-                  : "border-[#e8e8e8] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]";
+              feedView === "card" && (
+              <div className="flex w-full flex-col gap-3">
+                {sortedArticles.map((article, index) => {
+                  const mutedCls = isDark ? "text-[#888886]" : "text-[#6b6b6b]";
+                  const tagCls = isDark ? "text-[#888886]" : "text-[#888888]";
+                  const textCls = isDark ? "text-[#edebe8]" : "text-[#1a1a1a]";
 
-                const isCompact = cardSize === "compact";
-                const importance = article.importance;
-                const isComfortable = cardSize === "comfortable";
+                  const isCompact = cardSize === "compact";
+                  const importance = article.importance;
+                  const isComfortable = cardSize === "comfortable";
 
-                return (
-                  <article
-                    key={article.url || index}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setExpandedArticle(article)}
-                    onKeyDown={(e) => e.key === "Enter" && setExpandedArticle(article)}
-                    className={`relative w-full cursor-pointer rounded-lg border transition-shadow ${borderCls} ${
-                      isCompact ? "px-4 py-3 sm:px-4 sm:py-3" : isComfortable ? "px-6 py-6 sm:px-8 sm:py-7" : "px-5 py-5 sm:px-6 sm:py-6"
-                    }`}
-                  >
-                    <div
-                      className={`absolute flex gap-0.5 ${isCompact ? "right-4 top-3" : isComfortable ? "right-6 top-6 sm:right-8 sm:top-7" : "right-5 top-5 sm:right-6 sm:top-6"}`}
-                      aria-label={`Importance: ${importance} of 5`}
+                  return (
+                    <article
+                      key={article.url || index}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setExpandedArticle(article)}
+                      onKeyDown={(e) => e.key === "Enter" && setExpandedArticle(article)}
+                      className={`relative w-full cursor-pointer rounded-lg transition-shadow shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.08)] ${
+                        isDark ? "bg-[#1c1c1b] hover:shadow-[0_2px_6px_rgba(0,0,0,0.15)]" : "bg-[#ffffff]"
+                      } ${isCompact ? "p-3" : isComfortable ? "p-6" : "p-4"}`}
                     >
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <span
-                          key={i}
-                          className={`shrink-0 rounded-full ${
-                            isCompact ? "h-1 w-1" : "h-1.5 w-1.5"
-                          } ${
-                            i <= importance
-                              ? isDark
-                                ? "bg-[#ededed]"
-                                : "bg-[#171717]"
-                              : isDark
-                                ? "border border-[#404040] bg-transparent"
-                                : "border border-[#d4d4d4] bg-transparent"
+                      {/* Top line: tag, importance dots, timestamp, source */}
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className={`text-xs font-medium uppercase tracking-[0.12em] ${tagCls}`}>
+                          {article.tag}
+                        </span>
+                        <div className="flex gap-0.5" aria-label={`Importance: ${importance} of 5`}>
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <span
+                              key={i}
+                              className={`shrink-0 rounded-full ${isCompact ? "h-1 w-1" : "h-1 w-1"} ${
+                                i <= importance
+                                  ? isDark
+                                    ? "bg-[#edebe8]"
+                                    : "bg-[#1a1a1a]"
+                                  : isDark
+                                    ? "border border-[#3a3a39] bg-transparent"
+                                    : "border border-[#d4d4d4] bg-transparent"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className={`text-xs ${mutedCls}`}>
+                          <time dateTime={article.publishedAt}>{formatRelativeTime(article.publishedAt)}</time>
+                          <span className="mx-1.5">·</span>
+                          <a
+                            href={article.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="hover:underline"
+                          >
+                            {getSourceDisplay(article)}
+                          </a>
+                        </span>
+                      </div>
+                      <h2
+                        className={`font-serif font-medium leading-tight ${textCls} ${
+                          isCompact
+                            ? "text-base"
+                            : isComfortable
+                              ? "text-xl mb-2"
+                              : "text-lg mb-1.5"
+                        }`}
+                      >
+                        {article.title}
+                      </h2>
+                      {!isCompact && (
+                        <p
+                          className={`text-sm leading-relaxed ${mutedCls} line-clamp-2 ${
+                            isComfortable ? "mb-4" : "mb-3"
                           }`}
-                        />
-                      ))}
-                    </div>
-                    <span className={`inline-block text-xs font-medium uppercase tracking-wider ${mutedCls} ${isCompact ? "mb-1" : isComfortable ? "mb-4" : "mb-3"}`}>
-                      {article.tag}
-                    </span>
-                    <h2
-                      className={`font-serif font-normal leading-tight ${textCls} ${
-                        isCompact
-                          ? "text-base sm:text-lg"
-                          : isComfortable
-                            ? "text-2xl sm:text-3xl mb-3"
-                            : "mb-2 text-xl sm:text-2xl"
-                      }`}
-                    >
-                      {article.title}
-                    </h2>
-                    {!isCompact && (
-                      <p className={`leading-relaxed ${isDark ? "text-[#a3a3a3]" : "text-[#525252]"} ${isComfortable ? "mb-5 text-[17px]" : "mb-4 text-[15px]"}`}>
-                        {article.newtonSummary}
-                      </p>
-                    )}
-                    {!isCompact && (
-                      <div className={`flex flex-wrap items-center justify-between gap-3 ${isComfortable ? "mt-1" : ""}`}>
+                        >
+                          {article.newtonSummary}
+                        </p>
+                      )}
+                      <div className={`flex items-center justify-between gap-2 ${isComfortable ? "mt-2" : ""}`}>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleGoDeeper(article.title);
                           }}
-                          className={`rounded-full border px-4 py-2 font-medium transition-colors ${
-                            isComfortable ? "text-base" : "text-sm"
-                          } ${
+                          className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
                             isDark
-                              ? "border-[#ededed] bg-transparent text-[#ededed] hover:bg-[#ededed] hover:text-[#171717]"
-                              : "border-[#171717] bg-white text-[#171717] hover:bg-[#171717] hover:text-white"
+                              ? "border-[#3a3a39] bg-transparent text-[#edebe8] hover:bg-[#2a2a29]"
+                              : "border-[#d4d4d4] bg-transparent text-[#1a1a1a] hover:bg-[#f5f5f4]"
                           }`}
                         >
                           Ask Newton
                         </button>
-                        <div className="flex items-center gap-2">
-                          <time className={`text-xs ${isDark ? "text-[#737373]" : "text-[#a3a3a3]"}`} dateTime={article.publishedAt}>
-                            {formatRelativeTime(article.publishedAt)}
-                          </time>
-                          <a
-                            href={article.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className={`text-xs transition-colors hover:underline ${
-                              isDark ? "text-[#737373] hover:text-[#a3a3a3]" : "text-[#a3a3a3] hover:text-[#525252]"
-                            }`}
-                          >
-                            {getSourceDisplay(article)}
-                          </a>
-                        </div>
                       </div>
-                    )}
-                    {isCompact && (
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleGoDeeper(article.title);
-                          }}
-                          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                            isDark
-                              ? "border-[#ededed] bg-transparent text-[#ededed] hover:bg-[#ededed] hover:text-[#171717]"
-                              : "border-[#171717] bg-white text-[#171717] hover:bg-[#171717] hover:text-white"
-                          }`}
-                        >
-                          Ask Newton
-                        </button>
-                        <div className="flex items-center gap-2">
-                          <time className={`text-xs ${isDark ? "text-[#737373]" : "text-[#a3a3a3]"}`} dateTime={article.publishedAt}>
-                            {formatRelativeTime(article.publishedAt)}
-                          </time>
-                          <a
-                            href={article.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className={`text-xs transition-colors hover:underline ${
-                              isDark ? "text-[#737373] hover:text-[#a3a3a3]" : "text-[#a3a3a3] hover:text-[#525252]"
-                            }`}
-                          >
-                            {getSourceDisplay(article)}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
 
@@ -886,17 +853,17 @@ export default function Home() {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Ask Newton anything..."
                 disabled={isLoading}
-                className={`w-full rounded-full border py-3.5 pl-5 pr-14 text-base transition-colors focus:outline-none focus:ring-0 disabled:opacity-60 sm:py-4 sm:pl-6 sm:pr-16 sm:text-lg ${
+                className={`w-full rounded-full py-3 pl-5 pr-14 text-sm transition-colors focus:outline-none focus:ring-0 disabled:opacity-60 sm:py-3.5 sm:pl-6 sm:pr-16 sm:text-base shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${
                   isDark
-                    ? "border-[#404040] bg-[#171717] text-[#ededed] placeholder:text-[#737373] focus:border-[#737373]"
-                    : "border-[#e5e5e5] bg-white text-[#171717] placeholder:text-[#737373] focus:border-[#a3a3a3]"
+                    ? "bg-[#1c1c1b] text-[#edebe8] placeholder:text-[#888886]"
+                    : "bg-[#ffffff] text-[#1a1a1a] placeholder:text-[#6b6b6b]"
                 }`}
                 aria-label="Search"
               />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-[#171717] text-white transition-opacity hover:opacity-90 disabled:opacity-60 sm:right-3 sm:h-10 sm:w-10"
+                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#1a1a1a] text-white transition-opacity hover:opacity-90 disabled:opacity-60 sm:right-3 sm:h-8 sm:w-8"
                 aria-label="Send"
               >
                 <svg
@@ -912,7 +879,7 @@ export default function Home() {
 
             <div className="w-full">
               {isLoading && (
-                <div className={`flex items-center gap-2 ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}>
+                <div className={`flex items-center gap-2 ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>
                   <svg
                     className="h-4 w-4 animate-spin"
                     xmlns="http://www.w3.org/2000/svg"
@@ -942,8 +909,8 @@ export default function Home() {
               )}
               {response && !isLoading && (
                 <div
-                  className={`rounded-lg border px-5 py-4 ${
-                    isDark ? "border-[#404040] bg-[#171717]" : "border-[#e5e5e5] bg-[#fafafa]"
+                  className={`rounded-lg px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${
+                    isDark ? "bg-[#1c1c1b]" : "bg-[#ffffff]"
                   }`}
                 >
                   <ResponseContent content={response} isDark={isDark} />
