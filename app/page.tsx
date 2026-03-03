@@ -117,7 +117,10 @@ export default function Home() {
   const [feedSort, setFeedSort] = useState<FeedSort>("importance");
   const [expandedArticle, setExpandedArticle] = useState<FeedArticle | null>(null);
   const [newStories, setNewStories] = useState<FeedArticle[]>([]);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
   const feedArticlesRef = useRef<FeedArticle[]>([]);
   feedArticlesRef.current = feedArticles;
 
@@ -228,6 +231,19 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [fetchFeedSilently]);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(e.target as Node)) {
+        setSortDropdownOpen(false);
+      }
+    };
+    if (sortDropdownOpen) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [sortDropdownOpen]);
+
+
   function toggleTheme() {
     const next = !isDark;
     setIsDark(next);
@@ -296,9 +312,15 @@ export default function Home() {
     const el = scrollRef.current;
     if (!el) return;
     const scrollLeft = el.scrollLeft;
+    const scrollTop = el.scrollTop;
     const width = el.clientWidth;
     const index = Math.round(scrollLeft / width);
     setActivePanel(index === 0 ? "feed" : "newton");
+    setShowBackToTop(scrollTop >= 300);
+  }, []);
+
+  const scrollToTop = useCallback(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   function handleSubmit(e: React.FormEvent) {
@@ -442,6 +464,33 @@ export default function Home() {
         </div>
       )}
 
+      {/* Back to top */}
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          aria-label="Back to top"
+          className={`fixed bottom-6 right-6 z-10 flex h-9 w-9 items-center justify-center rounded-full transition-opacity hover:opacity-90 focus:outline-none focus:ring-0 ${
+            isDark
+              ? "bg-[#1c1c1b]/80 text-[#edebe8] shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+              : "bg-[#ffffff]/80 text-[#1a1a1a] shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+          }`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+          >
+            <path d="m18 15-6-6-6 6" />
+          </svg>
+        </button>
+      )}
+
       {/* Dark mode toggle */}
       <button
         type="button"
@@ -465,6 +514,7 @@ export default function Home() {
       </button>
 
       <header className="flex shrink-0 flex-col items-center px-4 pt-10 pb-5 sm:px-6 sm:pb-6">
+        <div className="mx-auto w-full max-w-[680px]">
         {/* Logo */}
         <h1
           className={`mb-4 font-serif text-3xl font-normal tracking-tight sm:mb-5 sm:text-4xl ${
@@ -514,6 +564,7 @@ export default function Home() {
             Newton
           </button>
         </div>
+        </div>
       </header>
 
       {/* Swipeable panel container */}
@@ -528,44 +579,87 @@ export default function Home() {
           aria-label="Feed"
           className="flex min-w-full shrink-0 snap-start snap-always flex-col items-center pb-8"
         >
-          <div className="flex w-full max-w-xl flex-col items-center gap-3 sm:gap-4">
+          <div className="mx-auto flex w-full max-w-[680px] flex-col items-center gap-3 sm:gap-4">
             <div className="flex w-full items-center justify-end gap-0.5">
-              <div className="flex items-center gap-1">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`h-3 w-3 shrink-0 ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}
-                >
-                  <path d="m3 16 4 4 4-4" />
-                  <path d="M7 20V4" />
-                  <path d="m21 8-4-4-4 4" />
-                  <path d="M17 4v16" />
-                </svg>
-                <select
-                  value={feedSort}
-                  onChange={(e) => setFeedSort(e.target.value as FeedSort)}
-                  aria-label="Sort feed"
-                  title={`Sort by ${feedSort}`}
-                  className={`cursor-pointer appearance-none rounded border-0 bg-transparent py-1 pr-5 text-xs font-medium focus:outline-none focus:ring-0 ${
-                    isDark
-                      ? "text-[#888886] hover:text-[#edebe8]"
-                      : "text-[#6b6b6b] hover:text-[#1a1a1a]"
-                  }`}
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "right 2px center",
+              <div className="relative" ref={sortDropdownRef}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSortDropdownOpen((o) => !o);
                   }}
+                  aria-label="Sort feed"
+                  aria-expanded={sortDropdownOpen}
+                  aria-haspopup="listbox"
+                  title={`Sort by ${feedSort}`}
+                  className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                    isDark
+                      ? "text-[#888886] hover:bg-[#252524] hover:text-[#edebe8]"
+                      : "text-[#6b6b6b] hover:bg-[#f0f0ef] hover:text-[#1a1a1a]"
+                  }`}
                 >
-                  <option value="importance">Importance</option>
-                  <option value="newest">Newest</option>
-                  <option value="source">Source</option>
-                </select>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-3 w-3 shrink-0"
+                  >
+                    <path d="m3 16 4 4 4-4" />
+                    <path d="M7 20V4" />
+                    <path d="m21 8-4-4-4 4" />
+                    <path d="M17 4v16" />
+                  </svg>
+                  <span className="capitalize">{feedSort}</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className={`h-3 w-3 transition-transform ${sortDropdownOpen ? "rotate-180" : ""}`}
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+                {sortDropdownOpen && (
+                  <div
+                    role="listbox"
+                    className={`absolute left-0 top-full z-20 mt-1 min-w-[120px] rounded-md py-1 shadow-[0_4px_12px_rgba(0,0,0,0.15)] ${
+                      isDark
+                        ? "border border-[#2a2a29] bg-[#1c1c1b]"
+                        : "border border-[#e5e4e2] bg-[#ffffff] shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+                    }`}
+                  >
+                    {(["importance", "newest", "source"] as const).map((opt) => (
+                      <button
+                        key={opt}
+                        role="option"
+                        aria-selected={feedSort === opt}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFeedSort(opt);
+                          setSortDropdownOpen(false);
+                        }}
+                        className={`w-full px-3 py-2 text-left text-xs font-medium capitalize transition-colors first:rounded-t-[5px] last:rounded-b-[5px] ${
+                          feedSort === opt
+                            ? isDark
+                              ? "bg-[#252524] text-[#edebe8]"
+                              : "bg-[#f5f5f4] text-[#1a1a1a]"
+                            : isDark
+                              ? "text-[#edebe8] hover:bg-[#252524]"
+                              : "text-[#1a1a1a] hover:bg-[#f5f5f4]"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <button
                 type="button"
@@ -845,7 +939,7 @@ export default function Home() {
           aria-label="Newton"
           className="flex min-w-full shrink-0 snap-start snap-always flex-col items-center pb-8"
         >
-          <div className="flex w-full max-w-2xl flex-col items-center">
+          <div className="mx-auto flex w-full max-w-[680px] flex-col items-center">
             <form onSubmit={handleSubmit} className="relative mb-10 w-full sm:mb-12">
               <input
                 type="text"
