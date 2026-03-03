@@ -723,26 +723,57 @@ export default function Home() {
                         >
                           Go deeper with Newton
                         </button>
-                        <time className={`text-xs ${isDark ? "text-[#737373]" : "text-[#a3a3a3]"}`} dateTime={article.publishedAt}>
-                          {formatRelativeTime(article.publishedAt)}
-                        </time>
+                        <div className="flex items-center gap-2">
+                          <time className={`text-xs ${isDark ? "text-[#737373]" : "text-[#a3a3a3]"}`} dateTime={article.publishedAt}>
+                            {formatRelativeTime(article.publishedAt)}
+                          </time>
+                          <a
+                            href={article.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className={`text-xs transition-colors hover:underline ${
+                              isDark ? "text-[#737373] hover:text-[#a3a3a3]" : "text-[#a3a3a3] hover:text-[#525252]"
+                            }`}
+                          >
+                            {article.sourceName}
+                          </a>
+                        </div>
                       </div>
                     )}
                     {isCompact && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleGoDeeper(article.title);
-                        }}
-                        className={`mt-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                          isDark
-                            ? "border-[#ededed] bg-transparent text-[#ededed] hover:bg-[#ededed] hover:text-[#171717]"
-                            : "border-[#171717] bg-white text-[#171717] hover:bg-[#171717] hover:text-white"
-                        }`}
-                      >
-                        Go deeper with Newton
-                      </button>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleGoDeeper(article.title);
+                          }}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                            isDark
+                              ? "border-[#ededed] bg-transparent text-[#ededed] hover:bg-[#ededed] hover:text-[#171717]"
+                              : "border-[#171717] bg-white text-[#171717] hover:bg-[#171717] hover:text-white"
+                          }`}
+                        >
+                          Go deeper with Newton
+                        </button>
+                        <div className="flex items-center gap-2">
+                          <time className={`text-xs ${isDark ? "text-[#737373]" : "text-[#a3a3a3]"}`} dateTime={article.publishedAt}>
+                            {formatRelativeTime(article.publishedAt)}
+                          </time>
+                          <a
+                            href={article.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className={`text-xs transition-colors hover:underline ${
+                              isDark ? "text-[#737373] hover:text-[#a3a3a3]" : "text-[#a3a3a3] hover:text-[#525252]"
+                            }`}
+                          >
+                            {article.sourceName}
+                          </a>
+                        </div>
+                      </div>
                     )}
                   </article>
                 );
