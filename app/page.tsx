@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 type FeedArticle = {
   title: string;
   newtonSummary: string;
+  source?: "news" | "hackernews" | "arxiv" | "github";
   sourceName: string;
   publishedAt: string;
   url: string;
@@ -13,6 +14,22 @@ type FeedArticle = {
   noc: string | null;
   tag: string;
 };
+
+function getSourceDisplay(article: FeedArticle): string {
+  if (article.sourceName?.trim()) return article.sourceName.trim();
+  switch (article.source) {
+    case "news":
+      return "News";
+    case "hackernews":
+      return "Hacker News";
+    case "arxiv":
+      return "arXiv";
+    case "github":
+      return "GitHub";
+    default:
+      return "Unknown";
+  }
+}
 
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -34,7 +51,8 @@ function getTextContent(children: React.ReactNode): string {
   if (typeof children === "string") return children;
   if (Array.isArray(children)) return children.map(getTextContent).join("");
   if (children && typeof children === "object" && "props" in children) {
-    return getTextContent((children as React.ReactElement).props.children);
+    const el = children as React.ReactElement<{ children?: React.ReactNode }>;
+    return getTextContent(el.props.children ?? "");
   }
   return "";
 }
@@ -78,7 +96,7 @@ type CardSize = "compact" | "default" | "comfortable";
 type FeedView = "card" | "list";
 type FeedSort = "importance" | "newest" | "source";
 
-const SOURCE_ORDER = ["Hacker News", "arXiv", "GitHub"];
+const SOURCE_ORDER = ["Hacker News", "arXiv", "GitHub", "News"];
 
 const THEME_STORAGE_KEY = "newton-theme";
 
@@ -109,11 +127,11 @@ export default function Home() {
     } else {
       const sourceRank = (s: string) => {
         const i = SOURCE_ORDER.indexOf(s);
-        return i >= 0 ? i : SOURCE_ORDER.length; // News and others last
+        return i >= 0 ? i : SOURCE_ORDER.length; // Unknown sources last
       };
       arr.sort((a, b) => {
-        const ra = sourceRank(a.sourceName);
-        const rb = sourceRank(b.sourceName);
+        const ra = sourceRank(getSourceDisplay(a));
+        const rb = sourceRank(getSourceDisplay(b));
         if (ra !== rb) return ra - rb;
         return b.importance - a.importance;
       });
@@ -762,7 +780,7 @@ export default function Home() {
                               isDark ? "text-[#737373] hover:text-[#a3a3a3]" : "text-[#a3a3a3] hover:text-[#525252]"
                             }`}
                           >
-                            {article.sourceName}
+                            {getSourceDisplay(article)}
                           </a>
                         </div>
                       </div>
@@ -796,7 +814,7 @@ export default function Home() {
                               isDark ? "text-[#737373] hover:text-[#a3a3a3]" : "text-[#a3a3a3] hover:text-[#525252]"
                             }`}
                           >
-                            {article.sourceName}
+                            {getSourceDisplay(article)}
                           </a>
                         </div>
                       </div>

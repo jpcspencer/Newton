@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+type ArticleSource = "news" | "hackernews" | "arxiv" | "github";
+
 type RawArticle = {
   title: string;
   description: string;
+  source: ArticleSource;
   sourceName: string;
   publishedAt: string;
   url: string;
@@ -14,6 +17,7 @@ type RawArticle = {
 type EnrichedArticle = {
   title: string;
   newtonSummary: string;
+  source: ArticleSource;
   sourceName: string;
   publishedAt: string;
   url: string;
@@ -107,6 +111,8 @@ async function enrichArticle(article: RawArticle, anthropicKey: string): Promise
       importance,
       noc,
       tag,
+      source: article.source,
+      sourceName: article.sourceName,
     };
   } catch (err) {
     console.warn("[Feed API] Enrichment failed for article:", article.title.slice(0, 50), err);
@@ -116,6 +122,8 @@ async function enrichArticle(article: RawArticle, anthropicKey: string): Promise
       importance: 3,
       noc: null,
       tag: article.sourceName,
+      source: article.source,
+      sourceName: article.sourceName,
     };
   }
 }
@@ -157,7 +165,8 @@ async function fetchNewsApi(newsApiKey: string): Promise<RawArticle[]> {
     .map((a) => ({
       title: (a.title ?? "").trim(),
       description: (a.description ?? "").trim(),
-      sourceName: a.source?.name ?? "News",
+      source: "news" as const,
+      sourceName: (a.source?.name ?? "News").trim() || "News",
       publishedAt: a.publishedAt ?? new Date().toISOString(),
       url: a.url ?? "",
     }))
@@ -199,6 +208,7 @@ async function fetchHackerNews(): Promise<RawArticle[]> {
       return {
         title: item.title.trim(),
         description: item.title.trim(),
+        source: "hackernews" as const,
         sourceName: "Hacker News",
         publishedAt: item.time ? new Date(item.time * 1000).toISOString() : new Date().toISOString(),
         url: item.url,
@@ -244,6 +254,7 @@ async function fetchArxiv(): Promise<RawArticle[]> {
       entries.push({
         title,
         description: summary || title,
+        source: "arxiv" as const,
         sourceName: "arXiv",
         publishedAt: published,
         url: link,
@@ -285,6 +296,7 @@ async function fetchGitHubTrending(): Promise<RawArticle[]> {
         return {
           title: fullName,
           description: (r.description ?? name).trim(),
+          source: "github" as const,
           sourceName: "GitHub",
           publishedAt: new Date().toISOString(),
           url: r.url ?? `https://github.com/${fullName}`,
