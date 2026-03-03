@@ -8,6 +8,7 @@ type RawArticle = {
   sourceName: string;
   publishedAt: string;
   url: string;
+  importanceHint?: string;
 };
 
 type EnrichedArticle = {
@@ -38,26 +39,29 @@ const ENRICHMENT_USER_TEMPLATE = `Enrich this article for the Newton feed. Retur
 - tag: one word category tag like "AI", "Space", "Biotech", "Physics", "Climate"
 
 Article title: {title}
-Article description: {description}`;
+Article description: {description}
+{importanceHint}`;
 
-function parseImportance(value: unknown): number {
+function parseImportance(value: unknown): number | null {
   if (typeof value === "number" && !Number.isNaN(value)) {
     return Math.min(5, Math.max(1, Math.round(value)));
   }
   if (typeof value === "string") {
-    const n = Number(value);
+    const n = Number(value.trim());
     if (!Number.isNaN(n)) {
       return Math.min(5, Math.max(1, Math.round(n)));
     }
   }
-  return 3;
+  return null;
 }
 
 async function enrichArticle(article: RawArticle, anthropicKey: string): Promise<EnrichedArticle> {
-  const userPrompt = ENRICHMENT_USER_TEMPLATE.replace("{title}", article.title).replace(
-    "{description}",
-    article.description
-  );
+  const hintLine = article.importanceHint
+    ? `Suggested importance based on source metrics: ${article.importanceHint}. You may adjust based on content significance.`
+    : "";
+  const userPrompt = ENRICHMENT_USER_TEMPLATE.replace("{title}", article.title)
+    .replace("{description}", article.description)
+    .replace("{importanceHint}", hintLine);
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -88,7 +92,8 @@ async function enrichArticle(article: RawArticle, anthropicKey: string): Promise
       console.warn("[Feed API] Failed to parse Claude response for article:", article.title.slice(0, 50));
     }
 
-    const importance = parseImportance(parsed.importance);
+    const parsedImportance = parseImportance(parsed.importance);
+    const importance = parsedImportance !== null ? parsedImportance : 3;
     const newtonSummary =
       typeof parsed.newtonSummary === "string" && parsed.newtonSummary.trim()
         ? parsed.newtonSummary.trim()
@@ -175,13 +180,32 @@ async function fetchHackerNews(): Promise<RawArticle[]> {
       item?.type === "story" && item?.url && (item?.score ?? 0) > 100 && item?.title
   );
 
-  return stories.map((item: { title: string; url: string; time?: number }) => ({
-    title: item.title.trim(),
-    description: item.title.trim(),
-    sourceName: "Hacker News",
-    publishedAt: item.time ? new Date(item.time * 1000).toISOString() : new Date().toISOString(),
-    url: item.url,
-  }));
+  return stories.map(
+    (item: {
+      title: string;
+      url: string;
+      time?: number;
+      score?: number;
+      descendants?: number;
+      kids?: unknown[];
+    }) => {
+      const score = item.score ?? 0;
+      const comments = item.descendants ?? item.kids?.length ?? 0;
+      let hintImportance = 1;
+      if (score >= 500 && comments >= 100) hintImportance = 5;
+      else if (score >= 300) hintImportance = 4;
+      else if (score >= 150) hintImportance = 3;
+      else if (score >= 75) hintImportance = 2;
+      return {
+        title: item.title.trim(),
+        description: item.title.trim(),
+        sourceName: "Hacker News",
+        publishedAt: item.time ? new Date(item.time * 1000).toISOString() : new Date().toISOString(),
+        url: item.url,
+        importanceHint: `${hintImportance} (score: ${score}, comments: ${comments})`,
+      };
+    }
+  );
 }
 
 async function fetchArxiv(): Promise<RawArticle[]> {
@@ -223,6 +247,7 @@ async function fetchArxiv(): Promise<RawArticle[]> {
         sourceName: "arXiv",
         publishedAt: published,
         url: link,
+        importanceHint: "3 (academic paper — adjust based on content significance)",
       });
     }
   }
@@ -240,6 +265,8 @@ async function fetchGitHubTrending(): Promise<RawArticle[]> {
       name?: string;
       description?: string;
       url?: string;
+      totalStars?: number;
+      stars?: number;
     }>;
 
     if (!Array.isArray(data)) return [];
@@ -249,12 +276,19 @@ async function fetchGitHubTrending(): Promise<RawArticle[]> {
       .map((r) => {
         const name = (r.repositoryName ?? r.name ?? "").trim();
         const fullName = r.username ? `${r.username}/${name}` : name;
+        const stars = r.totalStars ?? r.stars ?? 0;
+        let hintImportance = 1;
+        if (stars >= 10000) hintImportance = 5;
+        else if (stars >= 5000) hintImportance = 4;
+        else if (stars >= 1000) hintImportance = 3;
+        else if (stars >= 500) hintImportance = 2;
         return {
           title: fullName,
           description: (r.description ?? name).trim(),
           sourceName: "GitHub",
           publishedAt: new Date().toISOString(),
           url: r.url ?? `https://github.com/${fullName}`,
+          importanceHint: `${hintImportance} (${stars} stars)`,
         };
       })
       .filter((a) => a.title && a.url);
