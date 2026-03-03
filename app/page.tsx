@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 
 type FeedArticle = {
@@ -76,6 +76,9 @@ function ResponseContent({ content, isDark }: { content: string; isDark: boolean
 type Panel = "feed" | "newton";
 type CardSize = "compact" | "default" | "comfortable";
 type FeedView = "card" | "list";
+type FeedSort = "importance" | "newest" | "source";
+
+const SOURCE_ORDER = ["Hacker News", "arXiv", "GitHub"];
 
 const THEME_STORAGE_KEY = "newton-theme";
 
@@ -93,8 +96,30 @@ export default function Home() {
   const [feedError, setFeedError] = useState<string | null>(null);
   const [cardSize, setCardSize] = useState<CardSize>("default");
   const [feedView, setFeedView] = useState<FeedView>("card");
+  const [feedSort, setFeedSort] = useState<FeedSort>("importance");
   const [expandedArticle, setExpandedArticle] = useState<FeedArticle | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const sortedArticles = useMemo(() => {
+    const arr = [...feedArticles];
+    if (feedSort === "importance") {
+      arr.sort((a, b) => b.importance - a.importance);
+    } else if (feedSort === "newest") {
+      arr.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+    } else {
+      const sourceRank = (s: string) => {
+        const i = SOURCE_ORDER.indexOf(s);
+        return i >= 0 ? i : SOURCE_ORDER.length; // News and others last
+      };
+      arr.sort((a, b) => {
+        const ra = sourceRank(a.sourceName);
+        const rb = sourceRank(b.sourceName);
+        if (ra !== rb) return ra - rb;
+        return b.importance - a.importance;
+      });
+    }
+    return arr;
+  }, [feedArticles, feedSort]);
 
   function cycleCardSize() {
     setCardSize((prev) => CARD_SIZE_ORDER[(CARD_SIZE_ORDER.indexOf(prev) + 1) % CARD_SIZE_ORDER.length]);
@@ -424,7 +449,44 @@ export default function Home() {
           className="flex min-w-full shrink-0 snap-start snap-always flex-col items-center pb-8"
         >
           <div className="flex w-full max-w-xl flex-col items-center gap-4 sm:gap-5">
-            <div className="flex w-full items-center justify-end gap-0.5">
+            <div className="flex w-full items-center justify-end gap-1">
+              <div className="flex items-center gap-1.5">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`h-3.5 w-3.5 shrink-0 ${isDark ? "text-[#a3a3a3]" : "text-[#737373]"}`}
+                >
+                  <path d="m3 16 4 4 4-4" />
+                  <path d="M7 20V4" />
+                  <path d="m21 8-4-4-4 4" />
+                  <path d="M17 4v16" />
+                </svg>
+                <select
+                  value={feedSort}
+                  onChange={(e) => setFeedSort(e.target.value as FeedSort)}
+                  aria-label="Sort feed"
+                  title={`Sort by ${feedSort}`}
+                  className={`cursor-pointer appearance-none rounded border-0 bg-transparent py-1 pr-5 text-xs font-medium focus:outline-none focus:ring-0 ${
+                    isDark
+                      ? "text-[#a3a3a3] hover:text-[#ededed]"
+                      : "text-[#737373] hover:text-[#525252]"
+                  }`}
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 2px center",
+                  }}
+                >
+                  <option value="importance">Importance</option>
+                  <option value="newest">Newest</option>
+                  <option value="source">Source</option>
+                </select>
+              </div>
               <button
                 type="button"
                 onClick={cycleCardSize}
@@ -540,7 +602,7 @@ export default function Home() {
                   isDark ? "border-[#262626] bg-[#171717]" : "border-[#e8e8e8] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
                 }`}
               >
-                {feedArticles.map((article, index) => {
+                {sortedArticles.map((article, index) => {
                   const mutedCls = isDark ? "text-[#a3a3a3]" : "text-[#737373]";
                   const textCls = isDark ? "text-[#ededed]" : "text-[#171717]";
                   return (
@@ -581,7 +643,7 @@ export default function Home() {
             )}
             {!feedError &&
               feedView === "card" &&
-              feedArticles.map((article, index) => {
+              sortedArticles.map((article, index) => {
                 const mutedCls = isDark ? "text-[#a3a3a3]" : "text-[#737373]";
                 const textCls = isDark ? "text-[#ededed]" : "text-[#171717]";
                 const borderCls = isDark
