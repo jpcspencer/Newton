@@ -128,21 +128,6 @@ async function enrichArticle(article: RawArticle, anthropicKey: string): Promise
   }
 }
 
-function getDisplaySourceName(article: { source: ArticleSource; sourceName: string }): string {
-  switch (article.source) {
-    case "news":
-      return (article.sourceName?.trim() && article.sourceName !== "Hacker News") ? article.sourceName.trim() : "News";
-    case "hackernews":
-      return "Hacker News";
-    case "arxiv":
-      return "arXiv";
-    case "github":
-      return "GitHub";
-    default:
-      return article.sourceName?.trim() || "Unknown";
-  }
-}
-
 function deduplicateByTitle(articles: RawArticle[]): RawArticle[] {
   const seen = new Set<string>();
   return articles.filter((a) => {
@@ -177,21 +162,14 @@ async function fetchNewsApi(newsApiKey: string): Promise<RawArticle[]> {
 
   return (data.articles ?? [])
     .filter((a) => Boolean(a.description?.trim()))
-    .map((a) => {
-      let sourceName = "News";
-      if (a.source && typeof a.source === "object" && typeof (a.source as { name?: string }).name === "string") {
-        const name = ((a.source as { name?: string }).name ?? "").trim();
-        if (name) sourceName = name;
-      }
-      return {
-        title: (a.title ?? "").trim(),
-        description: (a.description ?? "").trim(),
-        source: "news" as const,
-        sourceName,
-        publishedAt: a.publishedAt ?? new Date().toISOString(),
-        url: a.url ?? "",
-      };
-    })
+    .map((a) => ({
+      title: (a.title ?? "").trim(),
+      description: (a.description ?? "").trim(),
+      source: "news" as const,
+      sourceName: (a.source?.name ?? "News").trim() || "News",
+      publishedAt: a.publishedAt ?? new Date().toISOString(),
+      url: a.url ?? "",
+    }))
     .filter((a) => a.title && a.url);
 }
 
@@ -367,12 +345,7 @@ export async function GET() {
 
     enriched.sort((a, b) => b.importance - a.importance);
 
-    const withCorrectSource = enriched.map((a) => ({
-      ...a,
-      sourceName: getDisplaySourceName(a),
-    }));
-
-    return NextResponse.json(withCorrectSource);
+    return NextResponse.json(enriched);
   } catch (error) {
     console.error("[Feed API] Unexpected error:", error);
     return NextResponse.json(

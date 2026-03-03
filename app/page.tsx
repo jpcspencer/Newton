@@ -195,36 +195,41 @@ export default function Home() {
       .finally(() => setFeedLoading(false));
   }, []);
 
-  useEffect(() => {
-    fetchFeed();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- intentional: fetch once on mount
+  const fetchFeedSilently = useCallback(() => {
+    fetch("/api/feed")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load feed");
+        return res.json();
+      })
+      .then((data: FeedArticle[]) => {
+        const seen = new Set<string>();
+        const deduped = data.filter((a) => {
+          const key = a.title.trim().toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        const currentTitles = new Set(feedArticlesRef.current.map((a) => a.title.trim().toLowerCase()));
+        const fresh = deduped.filter((a) => !currentTitles.has(a.title.trim().toLowerCase()));
+        if (fresh.length > 0) {
+          setNewStories((prev) => {
+            const prevTitles = new Set(prev.map((a) => a.title.trim().toLowerCase()));
+            const brandNew = fresh.filter((a) => !prevTitles.has(a.title.trim().toLowerCase()));
+            return [...brandNew, ...prev];
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetch("/api/feed")
-        .then((res) => res.ok ? res.json() : Promise.reject(new Error("Failed")))
-        .then((data: FeedArticle[]) => {
-          const seen = new Set<string>();
-          const deduped = data.filter((a) => {
-            const key = a.title.trim().toLowerCase();
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          });
-          const currentTitles = new Set(feedArticlesRef.current.map((a) => a.title.trim().toLowerCase()));
-          const fresh = deduped.filter((a) => !currentTitles.has(a.title.trim().toLowerCase()));
-          if (fresh.length > 0) {
-            setNewStories((prev) => {
-              const prevTitles = new Set(prev.map((a) => a.title.trim().toLowerCase()));
-              const brandNew = fresh.filter((a) => !prevTitles.has(a.title.trim().toLowerCase()));
-              return [...brandNew, ...prev];
-            });
-          }
-        })
-        .catch(() => {});
-    }, 5 * 60 * 1000);
+    fetchFeed();
+  }, [fetchFeed]);
+
+  useEffect(() => {
+    const interval = setInterval(fetchFeedSilently, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchFeedSilently]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -329,7 +334,6 @@ export default function Home() {
         isDark ? "bg-[#111110]" : "bg-[#f8f7f5]"
       }`}
     >
-      <div className="mx-auto flex w-full max-w-[680px] flex-1 flex-col">
       {/* Article expansion modal */}
       {expandedArticle && (
         <div
@@ -510,7 +514,7 @@ export default function Home() {
       </button>
 
       <header className="flex shrink-0 flex-col items-center px-4 pt-10 pb-5 sm:px-6 sm:pb-6">
-        <div className="w-full">
+        <div className="mx-auto w-full max-w-[680px]">
         {/* Logo */}
         <h1
           className={`mb-4 font-serif text-3xl font-normal tracking-tight sm:mb-5 sm:text-4xl ${
@@ -575,7 +579,7 @@ export default function Home() {
           aria-label="Feed"
           className="flex min-w-full shrink-0 snap-start snap-always flex-col items-center pb-8"
         >
-          <div className="flex w-full flex-col items-center gap-3 sm:gap-4">
+          <div className="mx-auto flex w-full max-w-[680px] flex-col items-center gap-3 sm:gap-4">
             <div className="flex w-full items-center justify-end gap-0.5">
               <div className="relative" ref={sortDropdownRef}>
                 <button
@@ -935,7 +939,7 @@ export default function Home() {
           aria-label="Newton"
           className="flex min-w-full shrink-0 snap-start snap-always flex-col items-center pb-8"
         >
-          <div className="flex w-full flex-col items-center">
+          <div className="mx-auto flex w-full max-w-[680px] flex-col items-center">
             <form onSubmit={handleSubmit} className="relative mb-10 w-full sm:mb-12">
               <input
                 type="text"
@@ -1009,7 +1013,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-      </div>
       </div>
     </div>
   );
