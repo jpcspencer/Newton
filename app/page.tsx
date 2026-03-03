@@ -131,7 +131,16 @@ export default function Home() {
         if (!res.ok) throw new Error("Failed to load feed");
         return res.json();
       })
-      .then((data: FeedArticle[]) => setFeedArticles(data))
+      .then((data: FeedArticle[]) => {
+        const seen = new Set<string>();
+        const deduped = data.filter((a) => {
+          const key = a.title.trim().toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setFeedArticles(deduped);
+      })
       .catch((err) => setFeedError(err instanceof Error ? err.message : "Failed to load feed"))
       .finally(() => setFeedLoading(false));
   }, []);
