@@ -86,10 +86,10 @@ export default function LandingPage() {
         </p>
         <Link
           href="/feed"
-          className={`rounded-full px-6 py-3 text-sm font-medium transition-colors ${
+          className={`inline-flex items-center justify-center rounded px-10 py-4 text-sm font-medium tracking-wide transition-all duration-200 ${
             isDark
-              ? "bg-[#edebe8] text-[#111110] hover:bg-[#e0deda]"
-              : "bg-[#1a1a1a] text-[#f8f7f5] hover:bg-[#2a2a2a]"
+              ? "bg-white text-[#111110] hover:opacity-90"
+              : "bg-[#1a1a1a] text-white hover:opacity-90"
           }`}
         >
           Enter Newton
