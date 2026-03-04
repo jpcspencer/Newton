@@ -5,6 +5,9 @@ import Link from "next/link";
 
 const THEME_STORAGE_KEY = "newton-theme";
 
+const AMBIENT_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+=<>./,;:?!@#$%&*";
+const AMBIENT_COUNT = 100;
+
 const FEATURES = [
   {
     title: "The Feed",
@@ -20,12 +23,37 @@ const FEATURES = [
   },
 ] as const;
 
+type AmbientChar = {
+  char: string;
+  x: number;
+  y: number;
+  delay: number;
+  duration: number;
+};
+
 export default function LandingPage() {
   const [isDark, setIsDark] = useState(false);
+  const [ambientChars, setAmbientChars] = useState<AmbientChar[]>([]);
 
   useEffect(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     setIsDark(stored === "dark");
+  }, []);
+
+  useEffect(() => {
+    const chars: AmbientChar[] = [];
+    const w = typeof window !== "undefined" ? window.innerWidth : 1200;
+    const h = typeof window !== "undefined" ? window.innerHeight : 800;
+    for (let i = 0; i < AMBIENT_COUNT; i++) {
+      chars.push({
+        char: AMBIENT_CHARS[Math.floor(Math.random() * AMBIENT_CHARS.length)],
+        x: Math.random() * w,
+        y: Math.random() * h,
+        delay: Math.random() * 8,
+        duration: 4 + Math.random() * 8,
+      });
+    }
+    setAmbientChars(chars);
   }, []);
 
   function toggleTheme() {
@@ -36,10 +64,33 @@ export default function LandingPage() {
 
   return (
     <div
-      className={`flex min-h-screen w-full flex-col transition-colors duration-200 ${
+      className={`relative flex min-h-screen w-full flex-col transition-colors duration-200 ${
         isDark ? "bg-[#111110]" : "bg-[#f8f7f5]"
       }`}
     >
+      {/* Ambient character background */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+        aria-hidden
+      >
+        {ambientChars.map(({ char, x, y, delay, duration }, i) => (
+          <span
+            key={i}
+            className={`absolute font-mono text-[10px] select-none ${
+              isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"
+            }`}
+            style={{
+              left: x,
+              top: y,
+              animation: `ambient-char-fade-${isDark ? "dark" : "light"} ${duration}s ease-in-out ${delay}s infinite`,
+            }}
+          >
+            {char}
+          </span>
+        ))}
+      </div>
+
+      <div className="relative z-10">
       <button
         type="button"
         onClick={toggleTheme}
@@ -82,7 +133,7 @@ export default function LandingPage() {
             isDark ? "text-[#888886]" : "text-[#6b6b6b]"
           }`}
         >
-          Signal, not noise. The feed that keeps you sharp.
+          Pure signal, no noise.
         </p>
         <Link
           href="/feed"
@@ -123,6 +174,7 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+      </div>
     </div>
   );
 }

@@ -38,3 +38,23 @@ body {
     transform: scale(1);
   }
 }
+
+@keyframes ambient-char-fade-dark {
+  0%,
+  100% {
+    opacity: 0.03;
+  }
+  50% {
+    opacity: 0.08;
+  }
+}
+
+@keyframes ambient-char-fade-light {
+  0%,
+  100% {
+    opacity: 0.02;
+  }
+  50% {
+    opacity: 0.05;
+  }
+}
