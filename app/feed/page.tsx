@@ -572,7 +572,7 @@ export default function FeedPage() {
             </button>
           ) : (
             <Link
-              href="/onboarding"
+              href="/signin"
               className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
                 isDark
                   ? "text-[#888886] hover:text-[#edebe8]"
