@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/feed";
 
   if (code) {
     const supabase = await createClient();
@@ -30,7 +29,7 @@ export async function GET(request: Request) {
         }
       }
 
-      const response = NextResponse.redirect(`${origin}${next}`);
+      const response = NextResponse.redirect(`${origin}/feed`);
       response.cookies.set("kurrnt-interests", "", { maxAge: 0, path: "/" });
       return response;
     }

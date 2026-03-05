@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 
 const THEME_STORAGE_KEY = "kurrnt-theme";
@@ -26,6 +27,7 @@ function setInterestsCookie(interests: string[]) {
 }
 
 export default function OnboardingPage() {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [interests, setInterests] = useState<Set<string>>(new Set());
   const [email, setEmail] = useState("");
@@ -38,6 +40,13 @@ export default function OnboardingPage() {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     setIsDark(stored === "dark");
   }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) router.replace("/feed");
+    });
+  }, [router]);
 
   function toggleTheme() {
     const next = !isDark;
@@ -243,14 +252,14 @@ export default function OnboardingPage() {
                 isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"
               }`}
             >
-              Save your Kurrnt
+              Create your account
             </h2>
             <p
               className={`mb-8 text-sm leading-relaxed ${
                 isDark ? "text-[#888886]" : "text-[#6b6b6b]"
               }`}
             >
-              Sign in to save your interests and personalize your feed across devices.
+              Sign in to save your interests and pick up where you left off.
             </p>
 
             <div className="mb-6 flex w-full flex-col gap-3">

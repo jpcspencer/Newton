@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase";
 
 const THEME_STORAGE_KEY = "kurrnt-theme";
 
@@ -40,8 +42,16 @@ function pickRandomChar() {
 }
 
 export default function LandingPage() {
+  const router = useRouter();
   const [isDark, setIsDark] = useState(false);
   const [ambientChars, setAmbientChars] = useState<AmbientChar[]>([]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) router.replace("/feed");
+    });
+  }, [router]);
 
   useEffect(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
