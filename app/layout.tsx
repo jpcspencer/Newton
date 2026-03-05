@@ -18,8 +18,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Kurrnt — AI Research Companion",
-  description: "Your mobile-first AI research companion",
+  title: "Kurrnt — Intelligent Media",
+  description: "Pure signal, no noise. Intelligent media for the AI age.",
 };
 
 export default function RootLayout({
