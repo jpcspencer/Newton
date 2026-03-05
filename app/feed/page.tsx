@@ -94,8 +94,8 @@ function ResponseContent({ content, isDark }: { content: string; isDark: boolean
   );
 }
 
-type Panel = "feed" | "kepler";
 type CardSize = "compact" | "default" | "comfortable";
+type ChatMessage = { role: "user" | "assistant"; content: string };
 type FeedView = "card" | "list";
 type FeedSort = "importance" | "newest" | "source";
 
@@ -114,11 +114,11 @@ export default function FeedPage() {
   const [editInterests, setEditInterests] = useState<Set<string>>(new Set());
   const [interestsSaving, setInterestsSaving] = useState(false);
   const [isDark, setIsDark] = useState(false);
-  const [message, setMessage] = useState("");
-  const [response, setResponse] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [activePanel, setActivePanel] = useState<Panel>("feed");
+  const [keplerExpandedArticle, setKeplerExpandedArticle] = useState<FeedArticle | null>(null);
+  const [keplerMessage, setKeplerMessage] = useState("");
+  const [keplerLoading, setKeplerLoading] = useState(false);
+  const [keplerError, setKeplerError] = useState<string | null>(null);
+  const [conversationsByArticle, setConversationsByArticle] = useState<Record<string, ChatMessage[]>>({});
   const [feedArticles, setFeedArticles] = useState<FeedArticle[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [feedError, setFeedError] = useState<string | null>(null);
@@ -200,18 +200,18 @@ export default function FeedPage() {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (editInterestsModalOpen) setEditInterestsModalOpen(false);
+        else if (keplerExpandedArticle) setKeplerExpandedArticle(null);
         else setExpandedArticle(null);
       }
     };
     if (expandedArticle || editInterestsModalOpen) {
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
-    }
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
+    } else {
       document.body.style.overflow = "";
-    };
-  }, [expandedArticle, editInterestsModalOpen]);
+    }
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [expandedArticle, editInterestsModalOpen, keplerExpandedArticle]);
 
   const fetchFeed = useCallback(() => {
     setFeedLoading(true);
@@ -329,23 +329,35 @@ export default function FeedPage() {
     return (m?.[1] ?? "?").toUpperCase();
   }
 
-  const scrollToPanel = useCallback((panel: Panel) => {
-    setActivePanel(panel);
-  }, []);
+  function openKeplerForArticle(article: FeedArticle) {
+    setExpandedArticle(null);
+    setKeplerExpandedArticle(article);
+    setKeplerError(null);
+  }
 
-  async function submitQuery(query: string) {
+  async function submitKeplerQuery(article: FeedArticle, query: string) {
     const trimmed = query.trim();
-    if (!trimmed || isLoading) return;
+    if (!trimmed || keplerLoading) return;
 
-    setIsLoading(true);
-    setError(null);
-    setResponse(null);
+    setKeplerLoading(true);
+    setKeplerError(null);
+
+    const key = article.url || article.title;
+    const history = conversationsByArticle[key] ?? [];
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed }),
+        body: JSON.stringify({
+          message: trimmed,
+          articleContext: {
+            title: article.title,
+            keplerSummary: article.keplerSummary,
+            keplersInsight: article.keplersInsight,
+          },
+          messages: history,
+        }),
       });
 
       const text = await res.text();
@@ -353,7 +365,7 @@ export default function FeedPage() {
       try {
         data = JSON.parse(text);
       } catch {
-        setError(
+        setKeplerError(
           res.status === 404
             ? "Chat API not found (404). Restart the dev server and try again."
             : `Server returned ${res.status}. ${text ? `Response: ${text.slice(0, 100)}` : ""}`
@@ -362,25 +374,31 @@ export default function FeedPage() {
       }
 
       if (!res.ok) {
-        setError(data.error ?? "Something went wrong");
+        setKeplerError(data.error ?? "Something went wrong");
         return;
       }
 
-      setResponse(data.response ?? "");
-      setMessage("");
+      const responseText = data.response ?? "";
+      setConversationsByArticle((prev) => ({
+        ...prev,
+        [key]: [
+          ...history,
+          { role: "user" as const, content: trimmed },
+          { role: "assistant" as const, content: responseText },
+        ],
+      }));
+      setKeplerMessage("");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to connect";
-      setError(msg.includes("fetch") || msg.includes("network") ? "Failed to connect. Check your network." : msg);
+      setKeplerError(msg.includes("fetch") || msg.includes("network") ? "Failed to connect. Check your network." : msg);
     } finally {
-      setIsLoading(false);
+      setKeplerLoading(false);
     }
   }
 
-  function handleGoDeeper(headline: string) {
-    scrollToPanel("kepler");
-    const question = `Tell me more about ${headline} — and what's Kepler's insight here?`;
-    setMessage(question);
-    submitQuery(question);
+  function handleKeplerSubmit(e: React.FormEvent, article: FeedArticle) {
+    e.preventDefault();
+    submitKeplerQuery(article, keplerMessage);
   }
 
   const handleScroll = useCallback(() => {
@@ -393,10 +411,6 @@ export default function FeedPage() {
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    submitQuery(message);
-  }
 
   return (
     <div
@@ -504,9 +518,12 @@ export default function FeedPage() {
                       key={label}
                       type="button"
                       onClick={() => {
+                        const art = expandedArticle;
                         setExpandedArticle(null);
-                        scrollToPanel("kepler");
-                        submitQuery(question);
+                        if (art) {
+                          openKeplerForArticle(art);
+                          submitKeplerQuery(art, question);
+                        }
                       }}
                       className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                         isDark
@@ -763,45 +780,6 @@ export default function FeedPage() {
           </Link>
         </h1>
 
-        <div
-          role="tablist"
-          aria-label="Switch between Feed and Kepler"
-          className="flex gap-6 border-b"
-          style={isDark ? { borderColor: "#2a2a29" } : { borderColor: "#e5e4e2" }}
-        >
-          <button
-            role="tab"
-            aria-selected={activePanel === "feed"}
-            onClick={() => scrollToPanel("feed")}
-            className={`pb-2.5 text-xs font-medium transition-colors duration-200 ${
-              activePanel === "feed"
-                ? isDark
-                  ? "text-[#edebe8] border-b-[1.5px] border-[#edebe8] -mb-[1.5px]"
-                  : "text-[#1a1a1a] border-b-[1.5px] border-[#1a1a1a] -mb-[1.5px]"
-                : isDark
-                  ? "text-[#888886] hover:text-[#edebe8]"
-                  : "text-[#6b6b6b] hover:text-[#1a1a1a]"
-            }`}
-          >
-            Feed
-          </button>
-          <button
-            role="tab"
-            aria-selected={activePanel === "kepler"}
-            onClick={() => scrollToPanel("kepler")}
-            className={`pb-2.5 text-xs font-medium transition-colors duration-200 ${
-              activePanel === "kepler"
-                ? isDark
-                  ? "text-[#edebe8] border-b-[1.5px] border-[#edebe8] -mb-[1.5px]"
-                  : "text-[#1a1a1a] border-b-[1.5px] border-[#1a1a1a] -mb-[1.5px]"
-                : isDark
-                  ? "text-[#888886] hover:text-[#edebe8]"
-                  : "text-[#6b6b6b] hover:text-[#1a1a1a]"
-            }`}
-          >
-            Kepler
-          </button>
-        </div>
         </div>
       </header>
 
@@ -810,7 +788,6 @@ export default function FeedPage() {
         onScroll={handleScroll}
         className="flex flex-1 flex-col overflow-y-auto px-4 pb-12 sm:px-6"
       >
-        {activePanel === "feed" && (
         <section
           role="tabpanel"
           aria-label="Feed"
@@ -965,13 +942,108 @@ export default function FeedPage() {
             {!feedError && feedView === "list" && (
               <div className={`w-full rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${isDark ? "bg-[#1c1c1b]" : "bg-[#ffffff]"}`}>
                 {sortedArticles.map((article, index) => {
+                  const isKeplerExpanded = keplerExpandedArticle?.url === article.url || (keplerExpandedArticle?.title === article.title && !article.url);
+                  if (isKeplerExpanded && keplerExpandedArticle) {
+                    const key = article.url || article.title;
+                    const messages = conversationsByArticle[key] ?? [];
+                    return (
+                      <div
+                        key={article.url || index}
+                        className={`border-b animate-[kepler-expand-in_0.25s_ease-out] ${isDark ? "border-[#2a2a29] bg-[#1c1c1b]" : "border-[#f0f0ef] bg-[#ffffff]"}`}
+                      >
+                        <div className="relative flex items-start justify-between border-b px-4 py-4 sm:px-6" style={isDark ? { borderColor: "#2a2a29" } : { borderColor: "#e5e4e2" }}>
+                          <div className="min-w-0 flex-1 pr-10">
+                            <h3 className={`font-serif text-lg font-medium leading-tight ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>
+                              {article.title}
+                            </h3>
+                            {article.keplersInsight && (
+                              <div className={`mt-2 border-l-2 pl-3 py-1 ${isDark ? "border-l-[#8b7355]" : "border-l-[#c4a574]"}`}>
+                                <p className={`text-xs font-medium uppercase tracking-[0.15em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`}>KEPLER&apos;S INSIGHT</p>
+                                <p className={`text-sm italic ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>{article.keplersInsight}</p>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setKeplerExpandedArticle(null)}
+                            aria-label="Close"
+                            className={`absolute right-4 top-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:opacity-70 ${
+                              isDark ? "text-[#888886] hover:text-[#edebe8]" : "text-[#6b6b6b] hover:text-[#1a1a1a]"
+                            }`}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                              <path d="M18 6 6 18" />
+                              <path d="m6 6 12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="max-h-[50vh] overflow-y-auto px-4 py-4 sm:px-6">
+                          <div className="space-y-4">
+                            {messages.map((msg, i) => (
+                              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                                <div
+                                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
+                                    msg.role === "user"
+                                      ? isDark ? "bg-white text-[#111110]" : "bg-[#1a1a1a] text-white"
+                                      : isDark ? "bg-[#252524] text-[#edebe8]" : "bg-[#f5f5f4] text-[#1a1a1a]"
+                                  }`}
+                                >
+                                  {msg.role === "assistant" ? (
+                                    <ResponseContent content={msg.content} isDark={isDark} />
+                                  ) : (
+                                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            {keplerLoading && (
+                              <div className={`flex items-center gap-2 ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>
+                                <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                <span className="text-sm">Thinking...</span>
+                              </div>
+                            )}
+                            {keplerError && !keplerLoading && (
+                              <p className={`text-sm ${isDark ? "text-red-400" : "text-red-600"}`}>{keplerError}</p>
+                            )}
+                          </div>
+                        </div>
+                        <form onSubmit={(e) => handleKeplerSubmit(e, article)} className="border-t p-4" style={isDark ? { borderColor: "#2a2a29" } : { borderColor: "#e5e4e2" }}>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={keplerMessage}
+                              onChange={(e) => setKeplerMessage(e.target.value)}
+                              placeholder="Ask Kepler about this story..."
+                              disabled={keplerLoading}
+                              className={`flex-1 rounded-full py-3 pl-4 pr-4 text-sm transition-colors focus:outline-none focus:ring-0 disabled:opacity-60 ${
+                                isDark ? "bg-[#252524] text-[#edebe8] placeholder:text-[#888886]" : "bg-[#f5f5f4] text-[#1a1a1a] placeholder:text-[#6b6b6b]"
+                              }`}
+                            />
+                            <button
+                              type="submit"
+                              disabled={keplerLoading || !keplerMessage.trim()}
+                              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1a1a1a] text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                              aria-label="Send"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 translate-x-0.5">
+                                <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
+                              </svg>
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    );
+                  }
                   const mutedCls = isDark ? "text-[#888886]" : "text-[#6b6b6b]";
                   const textCls = isDark ? "text-[#edebe8]" : "text-[#1a1a1a]";
                   return (
                     <button
                       key={article.url || index}
                       type="button"
-                      onClick={() => handleGoDeeper(article.title)}
+                      onClick={() => openKeplerForArticle(article)}
                       className={`flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-colors first:rounded-t-lg last:border-b-0 last:rounded-b-lg ${
                         isDark ? "border-[#2a2a29] hover:bg-[#252524]" : "border-[#f0f0ef] hover:bg-[#fafaf9]"
                       }`}
@@ -998,6 +1070,110 @@ export default function FeedPage() {
             {!feedError && feedView === "card" && (
               <div className="flex w-full flex-col gap-3">
                 {sortedArticles.map((article, index) => {
+                  const isKeplerExpanded = keplerExpandedArticle?.url === article.url || (keplerExpandedArticle?.title === article.title && !article.url);
+                  if (isKeplerExpanded && keplerExpandedArticle) {
+                    const key = article.url || article.title;
+                    const messages = conversationsByArticle[key] ?? [];
+                    return (
+                      <div
+                        key={article.url || index}
+                        className={`w-full overflow-hidden rounded-lg shadow-[0_2px_12px_rgba(0,0,0,0.08)] animate-[kepler-expand-in_0.25s_ease-out] ${
+                          isDark ? "bg-[#1c1c1b]" : "bg-[#ffffff]"
+                        }`}
+                      >
+                        <div className="relative flex items-start justify-between border-b px-4 py-4 sm:px-6" style={isDark ? { borderColor: "#2a2a29" } : { borderColor: "#e5e4e2" }}>
+                          <div className="min-w-0 flex-1 pr-10">
+                            <h3 className={`font-serif text-lg font-medium leading-tight ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>
+                              {article.title}
+                            </h3>
+                            {article.keplersInsight && (
+                              <div className={`mt-2 border-l-2 pl-3 py-1 ${isDark ? "border-l-[#8b7355]" : "border-l-[#c4a574]"}`}>
+                                <p className={`text-xs font-medium uppercase tracking-[0.15em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`}>KEPLER&apos;S INSIGHT</p>
+                                <p className={`text-sm italic ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>{article.keplersInsight}</p>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setKeplerExpandedArticle(null)}
+                            aria-label="Close"
+                            className={`absolute right-4 top-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:opacity-70 ${
+                              isDark ? "text-[#888886] hover:text-[#edebe8]" : "text-[#6b6b6b] hover:text-[#1a1a1a]"
+                            }`}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                              <path d="M18 6 6 18" />
+                              <path d="m6 6 12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="max-h-[50vh] overflow-y-auto px-4 py-4 sm:px-6">
+                          <div className="space-y-4">
+                            {messages.map((msg, i) => (
+                              <div
+                                key={i}
+                                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                              >
+                                <div
+                                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
+                                    msg.role === "user"
+                                      ? isDark
+                                        ? "bg-white text-[#111110]"
+                                        : "bg-[#1a1a1a] text-white"
+                                      : isDark
+                                        ? "bg-[#252524] text-[#edebe8]"
+                                        : "bg-[#f5f5f4] text-[#1a1a1a]"
+                                  }`}
+                                >
+                                  {msg.role === "assistant" ? (
+                                    <ResponseContent content={msg.content} isDark={isDark} />
+                                  ) : (
+                                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            {keplerLoading && (
+                              <div className={`flex items-center gap-2 ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>
+                                <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                <span className="text-sm">Thinking...</span>
+                              </div>
+                            )}
+                            {keplerError && !keplerLoading && (
+                              <p className={`text-sm ${isDark ? "text-red-400" : "text-red-600"}`}>{keplerError}</p>
+                            )}
+                          </div>
+                        </div>
+                        <form onSubmit={(e) => handleKeplerSubmit(e, article)} className="border-t p-4 sm:p-4" style={isDark ? { borderColor: "#2a2a29" } : { borderColor: "#e5e4e2" }}>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={keplerMessage}
+                              onChange={(e) => setKeplerMessage(e.target.value)}
+                              placeholder="Ask Kepler about this story..."
+                              disabled={keplerLoading}
+                              className={`flex-1 rounded-full py-3 pl-4 pr-4 text-sm transition-colors focus:outline-none focus:ring-0 disabled:opacity-60 ${
+                                isDark ? "bg-[#252524] text-[#edebe8] placeholder:text-[#888886]" : "bg-[#f5f5f4] text-[#1a1a1a] placeholder:text-[#6b6b6b]"
+                              }`}
+                            />
+                            <button
+                              type="submit"
+                              disabled={keplerLoading || !keplerMessage.trim()}
+                              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1a1a1a] text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                              aria-label="Send"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 translate-x-0.5">
+                                <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
+                              </svg>
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    );
+                  }
                   const mutedCls = isDark ? "text-[#888886]" : "text-[#6b6b6b]";
                   const tagCls = isDark ? "text-[#888886]" : "text-[#888888]";
                   const textCls = isDark ? "text-[#edebe8]" : "text-[#1a1a1a]";
@@ -1058,7 +1234,7 @@ export default function FeedPage() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleGoDeeper(article.title);
+                                openKeplerForArticle(article);
                               }}
                               className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
                                 isDark ? "border-[#3a3a39] bg-transparent text-[#edebe8] hover:bg-[#2a2a29]" : "border-[#d4d4d4] bg-transparent text-[#1a1a1a] hover:bg-[#f5f5f4]"
@@ -1076,57 +1252,6 @@ export default function FeedPage() {
             )}
           </div>
         </section>
-        )}
-
-        {activePanel === "kepler" && (
-        <section role="tabpanel" aria-label="Kepler" className="flex w-full flex-col items-center pb-8">
-          <div className="mx-auto flex w-full max-w-[680px] flex-col items-center">
-            <form onSubmit={handleSubmit} className="relative mb-10 w-full sm:mb-12">
-              <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Ask Kepler anything..."
-                disabled={isLoading}
-                className={`w-full rounded-full py-3 pl-5 pr-14 text-sm transition-colors focus:outline-none focus:ring-0 disabled:opacity-60 sm:py-3.5 sm:pl-6 sm:pr-16 sm:text-base shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${
-                  isDark ? "bg-[#1c1c1b] text-[#edebe8] placeholder:text-[#888886]" : "bg-[#ffffff] text-[#1a1a1a] placeholder:text-[#6b6b6b]"
-                }`}
-                aria-label="Search"
-              />
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#1a1a1a] text-white transition-opacity hover:opacity-90 disabled:opacity-60 sm:right-3 sm:h-8 sm:w-8"
-                aria-label="Send"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 translate-x-0.5 sm:h-[18px] sm:w-[18px]">
-                  <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
-                </svg>
-              </button>
-            </form>
-
-            <div className="w-full">
-              {isLoading && (
-                <div className={`flex items-center gap-2 ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>
-                  <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  <span className="text-sm">Thinking...</span>
-                </div>
-              )}
-              {error && !isLoading && (
-                <p className={`text-sm ${isDark ? "text-red-400" : "text-red-600"}`}>{error}</p>
-              )}
-              {response && !isLoading && (
-                <div className={`rounded-lg px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${isDark ? "bg-[#1c1c1b]" : "bg-[#ffffff]"}`}>
-                  <ResponseContent content={response} isDark={isDark} />
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-        )}
       </div>
     </div>
   );

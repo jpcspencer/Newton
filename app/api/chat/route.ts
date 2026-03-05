@@ -19,7 +19,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const { message } = body as { message?: string };
+    const { message, articleContext, messages: conversationHistory } = body as {
+      message?: string;
+      articleContext?: { title?: string; keplerSummary?: string; keplersInsight?: string | null };
+      messages?: Array<{ role: "user" | "assistant"; content: string }>;
+    };
 
     if (!message || typeof message !== "string") {
       console.error("[Chat API] Missing or invalid message:", { hasMessage: !!message, type: typeof message });
@@ -56,11 +60,30 @@ The user has saved interests: ${validInterests.join(", ")}. When relevant, tailo
       // Fall back to default system prompt
     }
 
+    if (articleContext && (articleContext.title || articleContext.keplerSummary)) {
+      const ctx = [
+        articleContext.title && `Title: ${articleContext.title}`,
+        articleContext.keplerSummary && `Summary: ${articleContext.keplerSummary}`,
+        articleContext.keplersInsight && `Kepler's Insight: ${articleContext.keplersInsight}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+      systemPrompt = `${systemPrompt}
+
+## Article Context (the user is asking about this specific story)
+${ctx}
+Answer in the context of this article.`;
+    }
+
+    const apiMessages: Array<{ role: "user" | "assistant"; content: string }> = Array.isArray(conversationHistory)
+      ? [...conversationHistory, { role: "user" as const, content: message }]
+      : [{ role: "user" as const, content: message }];
+
     const requestBody = {
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
       system: systemPrompt,
-      messages: [{ role: "user", content: message }],
+      messages: apiMessages,
     };
 
     console.log("[Chat API] Calling Anthropic API...", { model: requestBody.model, messageLength: message.length });
