@@ -178,16 +178,28 @@ export default function LandingPage() {
         >
           Pure signal, no noise.
         </p>
-        <Link
-          href="/onboarding"
-          className={`inline-flex items-center justify-center rounded px-10 py-4 text-sm font-medium tracking-wide transition-all duration-200 ${
-            isDark
-              ? "bg-white text-[#111110] hover:opacity-90"
-              : "bg-[#1a1a1a] text-white hover:opacity-90"
-          }`}
-        >
-          Get Started
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/onboarding"
+            className={`inline-flex items-center justify-center rounded px-10 py-4 text-sm font-medium tracking-wide transition-all duration-200 ${
+              isDark
+                ? "bg-white text-[#111110] hover:opacity-90"
+                : "bg-[#1a1a1a] text-white hover:opacity-90"
+            }`}
+          >
+            Get Started
+          </Link>
+          <Link
+            href="/signin"
+            className={`inline-flex items-center justify-center rounded px-10 py-4 text-sm font-medium tracking-wide transition-all duration-200 ${
+              isDark
+                ? "border border-[#3a3a39] text-[#edebe8] hover:bg-[#252524]"
+                : "border border-[#1a1a1a] text-[#1a1a1a] hover:bg-[#f0f0ef]"
+            }`}
+          >
+            Sign in
+          </Link>
+        </div>
       </section>
 
       {/* Three-column features */}
