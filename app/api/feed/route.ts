@@ -17,31 +17,31 @@ type RawArticle = {
 
 type EnrichedArticle = {
   title: string;
-  newtonSummary: string;
+  keplerSummary: string;
   source: ArticleSource;
   sourceName: string;
   publishedAt: string;
   url: string;
   urlToImage?: string | null;
   importance: number;
-  newtonsInsight: string | null;
+  keplersInsight: string | null;
   tag: string;
 };
 
 type ClaudeEnrichment = {
-  newtonSummary?: string;
+  keplerSummary?: string;
   importance?: number;
-  newtonsInsight?: string | null;
+  keplersInsight?: string | null;
   tag?: string;
 };
 
 const ENRICHMENT_SYSTEM =
-  "You are Newton, a warm and curious AI research companion. You interpret science and technology news with intelligence and clarity. Always respond in valid JSON only, no markdown, no backticks. The importance field MUST be a number between 1 and 5.";
+  "You are Kepler, a warm and curious AI research companion. You interpret science and technology news with intelligence and clarity. Always respond in valid JSON only, no markdown, no backticks. The importance field MUST be a number between 1 and 5.";
 
-const ENRICHMENT_USER_TEMPLATE = `Enrich this article for the Newton feed. Return a JSON object with these fields:
-- newtonSummary: a 2-3 sentence summary in Newton's voice — clear, intelligent, no jargon, written for a curious non-expert
+const ENRICHMENT_USER_TEMPLATE = `Enrich this article for the Kurrnt feed. Return a JSON object with these fields:
+- keplerSummary: a 2-3 sentence summary in Kepler's voice — clear, intelligent, no jargon, written for a curious non-expert
 - importance: a number 1-5 (integer) based on genuine significance to science and technology — must be a number, not a string
-- newtonsInsight: one sentence describing Newton's insight — a connection between this story and something from a different field that most people wouldn't put together. Only include if genuinely interesting, otherwise return null
+- keplersInsight: one sentence describing Kepler's insight — a connection between this story and something from a different field that most people wouldn't put together. Only include if genuinely interesting, otherwise return null
 - tag: one word category tag like "AI", "Space", "Biotech", "Physics", "Climate"
 
 Article title: {title}
@@ -100,12 +100,12 @@ async function enrichArticle(article: RawArticle, anthropicKey: string): Promise
 
     const parsedImportance = parseImportance(parsed.importance);
     const importance = parsedImportance !== null ? parsedImportance : 3;
-    const newtonSummary =
-      typeof parsed.newtonSummary === "string" && parsed.newtonSummary.trim()
-        ? parsed.newtonSummary.trim()
+    const keplerSummary =
+      typeof parsed.keplerSummary === "string" && parsed.keplerSummary.trim()
+        ? parsed.keplerSummary.trim()
         : article.description;
-    const newtonsInsight = (typeof parsed.newtonsInsight === "string" && parsed.newtonsInsight.trim()
-      ? parsed.newtonsInsight.trim()
+    const keplersInsight = (typeof parsed.keplersInsight === "string" && parsed.keplersInsight.trim()
+      ? parsed.keplersInsight.trim()
       : typeof (parsed as { noc?: string }).noc === "string" && (parsed as { noc?: string }).noc?.trim()
         ? (parsed as { noc?: string }).noc!.trim()
         : null);
@@ -113,9 +113,9 @@ async function enrichArticle(article: RawArticle, anthropicKey: string): Promise
 
     return {
       ...article,
-      newtonSummary,
+      keplerSummary,
       importance,
-      newtonsInsight,
+      keplersInsight,
       tag,
       source: article.source,
       sourceName: article.sourceName,
@@ -124,9 +124,9 @@ async function enrichArticle(article: RawArticle, anthropicKey: string): Promise
     console.warn("[Feed API] Enrichment failed for article:", article.title.slice(0, 50), err);
     return {
       ...article,
-      newtonSummary: article.description,
+      keplerSummary: article.description,
       importance: 3,
-      newtonsInsight: null,
+      keplersInsight: null,
       tag: article.sourceName,
       source: article.source,
       sourceName: article.sourceName,

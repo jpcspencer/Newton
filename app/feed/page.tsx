@@ -6,14 +6,14 @@ import ReactMarkdown from "react-markdown";
 
 type FeedArticle = {
   title: string;
-  newtonSummary: string;
+  keplerSummary: string;
   source?: "news" | "hackernews" | "arxiv" | "github";
   sourceName: string;
   publishedAt: string;
   url: string;
   urlToImage?: string | null;
   importance: number;
-  newtonsInsight: string | null;
+  keplersInsight: string | null;
   tag: string;
 };
 
@@ -67,11 +67,11 @@ function ResponseContent({ content, isDark }: { content: string; isDark: boolean
       components={{
         p: ({ children }) => {
           const text = getTextContent(children);
-          const isInsight = text.trimStart().startsWith("Newton's Insight") || text.trimStart().startsWith("⚡ NoC") || text.trimStart().toLowerCase().includes("newton's insight");
+          const isInsight = text.trimStart().startsWith("Kepler's Insight") || text.trimStart().startsWith("⚡ NoC") || text.trimStart().toLowerCase().includes("kepler's insight");
           if (isInsight) {
             return (
               <div className={`mt-4 rounded-lg border-l-2 pl-4 py-3 first:mt-0 ${isDark ? "border-l-[#8b7355]" : "border-l-[#c4a574]"}`}>
-                <p className={`text-xs font-medium uppercase tracking-[0.15em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`} style={{ marginBottom: "0.25rem" }}>NEWTON'S INSIGHT</p>
+                <p className={`text-xs font-medium uppercase tracking-[0.15em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`} style={{ marginBottom: "0.25rem" }}>KEPLER'S INSIGHT</p>
                 <p className={`text-sm leading-relaxed italic ${textCls}`}>{children}</p>
               </div>
             );
@@ -90,14 +90,14 @@ function ResponseContent({ content, isDark }: { content: string; isDark: boolean
   );
 }
 
-type Panel = "feed" | "newton";
+type Panel = "feed" | "kepler";
 type CardSize = "compact" | "default" | "comfortable";
 type FeedView = "card" | "list";
 type FeedSort = "importance" | "newest" | "source";
 
 const SOURCE_ORDER = ["Hacker News", "arXiv", "GitHub", "News"];
 
-const THEME_STORAGE_KEY = "newton-theme";
+const THEME_STORAGE_KEY = "kurrnt-theme";
 
 const CARD_SIZE_ORDER: CardSize[] = ["compact", "default", "comfortable"];
 
@@ -296,8 +296,8 @@ export default function FeedPage() {
   }
 
   function handleGoDeeper(headline: string) {
-    scrollToPanel("newton");
-    const question = `Tell me more about ${headline} — and what's Newton's insight here?`;
+    scrollToPanel("kepler");
+    const question = `Tell me more about ${headline} — and what's Kepler's insight here?`;
     setMessage(question);
     submitQuery(question);
   }
@@ -393,13 +393,13 @@ export default function FeedPage() {
                 {expandedArticle.title}
               </h2>
               <p className={`mb-6 text-sm leading-relaxed ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>
-                {expandedArticle.newtonSummary}
+                {expandedArticle.keplerSummary}
               </p>
-              {expandedArticle.newtonsInsight && (
+              {expandedArticle.keplersInsight && (
                 <div className={`mb-6 rounded-r border-l-2 pl-4 py-3 ${isDark ? "border-l-[#8b7355]" : "border-l-[#c4a574]"}`}>
-                  <p className={`text-[10px] font-medium uppercase tracking-[0.2em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`}>NEWTON'S INSIGHT</p>
+                  <p className={`text-[10px] font-medium uppercase tracking-[0.2em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`}>KEPLER'S INSIGHT</p>
                   <p className={`mt-1 text-sm leading-relaxed italic ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>
-                    {expandedArticle.newtonsInsight}
+                    {expandedArticle.keplersInsight}
                   </p>
                 </div>
               )}
@@ -408,15 +408,15 @@ export default function FeedPage() {
                   {[
                     {
                       label: "What does this mean?",
-                      question: `Explain this story in simple terms and why it matters: "${expandedArticle.title}" — ${expandedArticle.newtonSummary}`,
+                      question: `Explain this story in simple terms and why it matters: "${expandedArticle.title}" — ${expandedArticle.keplerSummary}`,
                     },
                     {
                       label: "What should I know?",
-                      question: `What key context and background do I need to fully understand this story? "${expandedArticle.title}" — ${expandedArticle.newtonSummary}`,
+                      question: `What key context and background do I need to fully understand this story? "${expandedArticle.title}" — ${expandedArticle.keplerSummary}`,
                     },
                     {
                       label: "What happens next?",
-                      question: `What are the implications of this story and where does it lead? "${expandedArticle.title}" — ${expandedArticle.newtonSummary}`,
+                      question: `What are the implications of this story and where does it lead? "${expandedArticle.title}" — ${expandedArticle.keplerSummary}`,
                     },
                   ].map(({ label, question }) => (
                     <button
@@ -424,7 +424,7 @@ export default function FeedPage() {
                       type="button"
                       onClick={() => {
                         setExpandedArticle(null);
-                        scrollToPanel("newton");
+                        scrollToPanel("kepler");
                         submitQuery(question);
                       }}
                       className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -503,13 +503,13 @@ export default function FeedPage() {
             href="/"
             className="cursor-pointer no-underline transition-opacity hover:opacity-80"
           >
-            Newton
+            Kurrnt
           </Link>
         </h1>
 
         <div
           role="tablist"
-          aria-label="Switch between Feed and Newton"
+          aria-label="Switch between Feed and Kepler"
           className="flex gap-6 border-b"
           style={isDark ? { borderColor: "#2a2a29" } : { borderColor: "#e5e4e2" }}
         >
@@ -531,10 +531,10 @@ export default function FeedPage() {
           </button>
           <button
             role="tab"
-            aria-selected={activePanel === "newton"}
-            onClick={() => scrollToPanel("newton")}
+            aria-selected={activePanel === "kepler"}
+            onClick={() => scrollToPanel("kepler")}
             className={`pb-2.5 text-xs font-medium transition-colors duration-200 ${
-              activePanel === "newton"
+              activePanel === "kepler"
                 ? isDark
                   ? "text-[#edebe8] border-b-[1.5px] border-[#edebe8] -mb-[1.5px]"
                   : "text-[#1a1a1a] border-b-[1.5px] border-[#1a1a1a] -mb-[1.5px]"
@@ -543,7 +543,7 @@ export default function FeedPage() {
                   : "text-[#6b6b6b] hover:text-[#1a1a1a]"
             }`}
           >
-            Newton
+            Kepler
           </button>
         </div>
         </div>
@@ -793,7 +793,7 @@ export default function FeedPage() {
                         </h2>
                         {!isCompact && (
                           <p className={`text-sm leading-relaxed ${mutedCls} line-clamp-2 ${isComfortable ? "mb-4" : "mb-3"}`}>
-                            {article.newtonSummary}
+                            {article.keplerSummary}
                           </p>
                         )}
                         {!isCompact && (
@@ -808,7 +808,7 @@ export default function FeedPage() {
                                 isDark ? "border-[#3a3a39] bg-transparent text-[#edebe8] hover:bg-[#2a2a29]" : "border-[#d4d4d4] bg-transparent text-[#1a1a1a] hover:bg-[#f5f5f4]"
                               }`}
                             >
-                              Ask Newton
+                              Ask Kepler
                             </button>
                           </div>
                         )}
@@ -822,15 +822,15 @@ export default function FeedPage() {
         </section>
         )}
 
-        {activePanel === "newton" && (
-        <section role="tabpanel" aria-label="Newton" className="flex w-full flex-col items-center pb-8">
+        {activePanel === "kepler" && (
+        <section role="tabpanel" aria-label="Kepler" className="flex w-full flex-col items-center pb-8">
           <div className="mx-auto flex w-full max-w-[680px] flex-col items-center">
             <form onSubmit={handleSubmit} className="relative mb-10 w-full sm:mb-12">
               <input
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Ask Newton anything..."
+                placeholder="Ask Kepler anything..."
                 disabled={isLoading}
                 className={`w-full rounded-full py-3 pl-5 pr-14 text-sm transition-colors focus:outline-none focus:ring-0 disabled:opacity-60 sm:py-3.5 sm:pl-6 sm:pr-16 sm:text-base shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${
                   isDark ? "bg-[#1c1c1b] text-[#edebe8] placeholder:text-[#888886]" : "bg-[#ffffff] text-[#1a1a1a] placeholder:text-[#6b6b6b]"

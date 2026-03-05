@@ -18,7 +18,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Newton — AI Research Companion",
+  title: "Kurrnt — AI Research Companion",
   description: "Your mobile-first AI research companion",
 };
 

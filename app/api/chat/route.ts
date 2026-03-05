@@ -1,4 +1,4 @@
-import { NEWTON_SYSTEM_PROMPT } from "@/lib/system-prompt";
+import { KEPLER_SYSTEM_PROMPT } from "@/lib/system-prompt";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     const requestBody = {
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
-      system: NEWTON_SYSTEM_PROMPT,
+      system: KEPLER_SYSTEM_PROMPT,
       messages: [{ role: "user", content: message }],
     };
 

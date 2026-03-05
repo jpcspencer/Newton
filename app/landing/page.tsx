@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-const THEME_STORAGE_KEY = "newton-theme";
+const THEME_STORAGE_KEY = "kurrnt-theme";
 
 const AMBIENT_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+=<>./,;:?!@#$%&*";
 const AMBIENT_COUNT = 100;
@@ -14,11 +14,11 @@ const FEATURES = [
     description: "Curated stories ranked by importance, so you see what matters first.",
   },
   {
-    title: "Newton's Insight",
+    title: "Kepler's Insight",
     description: "AI-powered analysis that cuts through the noise and explains why it matters.",
   },
   {
-    title: "Ask Newton",
+    title: "Ask Kepler",
     description: "Go deeper on any story—ask questions and get clear, thoughtful answers.",
   },
 ] as const;
@@ -152,7 +152,7 @@ export default function LandingPage() {
             isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"
           }`}
         >
-          Newton
+          Kurrnt
         </h1>
         <p
           className={`mb-2 text-sm font-medium tracking-[0.2em] uppercase sm:text-base ${
@@ -176,7 +176,7 @@ export default function LandingPage() {
               : "bg-[#1a1a1a] text-white hover:opacity-90"
           }`}
         >
-          Enter Newton
+          Enter Kurrnt
         </Link>
       </section>
 
