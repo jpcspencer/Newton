@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { createAdminClient } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
+
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type ArticleSource = "news" | "hackernews" | "arxiv" | "github";
 
@@ -50,6 +53,58 @@ Article description: {description}
 {importanceHint}
 {interestsHint}`;
 
+type CachedEnrichment = {
+  kepler_summary: string | null;
+  importance_score: number;
+  kepler_insight: string | null;
+  tag: string | null;
+  created_at: string;
+};
+
+async function getCachedEnrichment(url: string): Promise<CachedEnrichment | null> {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("article_cache")
+      .select("kepler_summary, importance_score, kepler_insight, tag, created_at")
+      .eq("url", url)
+      .single();
+
+    if (error || !data) return null;
+
+    const createdAt = new Date(data.created_at).getTime();
+    if (Date.now() - createdAt > CACHE_TTL_MS) return null;
+
+    return data as CachedEnrichment;
+  } catch {
+    return null;
+  }
+}
+
+async function saveToCache(
+  url: string,
+  title: string,
+  enrichment: { keplerSummary: string; importance: number; keplersInsight: string | null; tag: string }
+): Promise<void> {
+  try {
+    const supabase = createAdminClient();
+    await supabase.from("article_cache").upsert(
+      {
+        url,
+        title,
+        kepler_insight: enrichment.keplersInsight,
+        importance_score: enrichment.importance,
+        kepler_summary: enrichment.keplerSummary,
+        tag: enrichment.tag,
+        created_at: new Date().toISOString(),
+      },
+      { onConflict: "url" }
+    );
+  } catch (err) {
+    console.warn("[Feed API] Failed to save to cache:", err);
+  }
+}
+
 function parseImportance(value: unknown): number | null {
   if (typeof value === "number" && !Number.isNaN(value)) {
     return Math.min(5, Math.max(1, Math.round(value)));
@@ -68,6 +123,19 @@ async function enrichArticle(
   anthropicKey: string,
   userInterests?: string[]
 ): Promise<EnrichedArticle> {
+  const cached = await getCachedEnrichment(article.url);
+  if (cached) {
+    return {
+      ...article,
+      keplerSummary: cached.kepler_summary ?? article.description,
+      importance: Math.min(5, Math.max(1, cached.importance_score)),
+      keplersInsight: cached.kepler_insight ?? null,
+      tag: cached.tag ?? article.sourceName,
+      source: article.source,
+      sourceName: article.sourceName,
+    };
+  }
+
   const hintLine = article.importanceHint
     ? `Suggested importance based on source metrics: ${article.importanceHint}. You may adjust based on content significance.`
     : "";
@@ -127,7 +195,7 @@ async function enrichArticle(
         : null);
     const tag = typeof parsed.tag === "string" && parsed.tag.trim() ? parsed.tag.trim() : "Science";
 
-    return {
+    const enriched: EnrichedArticle = {
       ...article,
       keplerSummary,
       importance,
@@ -136,6 +204,15 @@ async function enrichArticle(
       source: article.source,
       sourceName: article.sourceName,
     };
+
+    saveToCache(article.url, article.title, {
+      keplerSummary,
+      importance,
+      keplersInsight,
+      tag,
+    }).catch(() => {});
+
+    return enriched;
   } catch (err) {
     console.warn("[Feed API] Enrichment failed for article:", article.title.slice(0, 50), err);
     return {
