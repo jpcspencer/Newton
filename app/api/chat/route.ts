@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       const { data: { session } } = await supabase.auth.getSession();
       const metadata = session?.user?.user_metadata;
       const interests = metadata?.interests;
-      const userName = displayName ?? (typeof metadata?.display_name === "string" ? metadata.display_name.trim() : null) || null;
+      const userName = typeof metadata?.display_name === "string" ? metadata.display_name.trim() : null;
       if (Array.isArray(interests) && interests.length > 0) {
         const validInterests = interests.filter((i): i is string => typeof i === "string");
         if (validInterests.length > 0) {
