@@ -111,7 +111,7 @@ export default function OnboardingPage() {
   return (
     <div
       className={`relative flex min-h-screen w-full flex-col transition-colors duration-200 ${
-        isDark ? "bg-[#111110]" : "bg-[#f8f7f5]"
+        isDark ? "bg-[#0a0f1e]" : "bg-[#f4f6fb]"
       }`}
     >
       <button
@@ -120,8 +120,8 @@ export default function OnboardingPage() {
         aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
         className={`fixed right-4 top-4 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-0 ${
           isDark
-            ? "text-[#888886] hover:text-[#edebe8]"
-            : "text-[#6b6b6b] hover:text-[#1a1a1a]"
+            ? "text-[#8896a8] hover:text-[#e8edf5]"
+            : "text-[#4a5568] hover:text-[#0a0f1e]"
         }`}
       >
         {isDark ? (
@@ -140,14 +140,14 @@ export default function OnboardingPage() {
           <section className="flex w-full max-w-md flex-col items-center text-center">
             <h1
               className={`mb-4 font-serif text-4xl font-normal tracking-tight sm:text-5xl ${
-                isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"
+                isDark ? "text-[#e8edf5]" : "text-[#0a0f1e]"
               }`}
             >
               Welcome to Kurrnt
             </h1>
             <p
               className={`mb-10 text-sm leading-relaxed ${
-                isDark ? "text-[#888886]" : "text-[#6b6b6b]"
+                isDark ? "text-[#8896a8]" : "text-[#4a5568]"
               }`}
             >
               Let&apos;s personalize your feed
@@ -157,8 +157,8 @@ export default function OnboardingPage() {
               onClick={() => setStep(2)}
               className={`inline-flex items-center justify-center rounded px-10 py-4 text-sm font-medium tracking-wide transition-all duration-200 ${
                 isDark
-                  ? "bg-white text-[#111110] hover:opacity-90"
-                  : "bg-[#1a1a1a] text-white hover:opacity-90"
+                  ? "bg-white text-[#0a0f1e] hover:opacity-90"
+                  : "bg-[#2563eb] text-white hover:opacity-90"
               }`}
             >
               Continue
@@ -170,14 +170,14 @@ export default function OnboardingPage() {
           <section className="flex w-full max-w-lg flex-col items-center">
             <h2
               className={`mb-2 font-serif text-2xl font-normal tracking-tight sm:text-3xl ${
-                isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"
+                isDark ? "text-[#e8edf5]" : "text-[#0a0f1e]"
               }`}
             >
               What interests you?
             </h2>
             <p
               className={`mb-8 text-sm ${
-                isDark ? "text-[#888886]" : "text-[#6b6b6b]"
+                isDark ? "text-[#8896a8]" : "text-[#4a5568]"
               }`}
             >
               Select at least 3 topics
@@ -193,11 +193,11 @@ export default function OnboardingPage() {
                     className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                       selected
                         ? isDark
-                          ? "bg-white text-[#111110]"
-                          : "bg-[#1a1a1a] text-white"
+                          ? "bg-white text-[#0a0f1e]"
+                          : "bg-[#2563eb] text-white"
                         : isDark
-                          ? "border border-[#3a3a39] text-[#edebe8] hover:bg-[#252524]"
-                          : "border border-[#d4d4d4] text-[#1a1a1a] hover:bg-[#f5f5f4]"
+                          ? "border border-[#1e2d4a] text-[#e8edf5] hover:bg-[#111827]"
+                          : "border border-[#dde3ed] text-[#0a0f1e] hover:bg-[#dde3ed]"
                     }`}
                   >
                     {topic}
@@ -211,8 +211,8 @@ export default function OnboardingPage() {
                 onClick={() => setStep(1)}
                 className={`rounded px-6 py-3 text-sm font-medium transition-colors ${
                   isDark
-                    ? "text-[#888886] hover:text-[#edebe8]"
-                    : "text-[#6b6b6b] hover:text-[#1a1a1a]"
+                    ? "text-[#8896a8] hover:text-[#e8edf5]"
+                    : "text-[#4a5568] hover:text-[#0a0f1e]"
                 }`}
               >
                 Back
@@ -223,8 +223,8 @@ export default function OnboardingPage() {
                 disabled={!canProceedFromStep2}
                 className={`inline-flex items-center justify-center rounded px-10 py-4 text-sm font-medium tracking-wide transition-all duration-200 disabled:opacity-50 ${
                   isDark
-                    ? "bg-white text-[#111110] hover:opacity-90"
-                    : "bg-[#1a1a1a] text-white hover:opacity-90"
+                    ? "bg-white text-[#0a0f1e] hover:opacity-90"
+                    : "bg-[#2563eb] text-white hover:opacity-90"
                 }`}
               >
                 Continue
@@ -237,14 +237,14 @@ export default function OnboardingPage() {
           <section className="flex w-full max-w-md flex-col items-center text-center">
             <h2
               className={`mb-4 font-serif text-2xl font-normal tracking-tight sm:text-3xl ${
-                isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"
+                isDark ? "text-[#e8edf5]" : "text-[#0a0f1e]"
               }`}
             >
               Create your account
             </h2>
             <p
               className={`mb-8 text-sm leading-relaxed ${
-                isDark ? "text-[#888886]" : "text-[#6b6b6b]"
+                isDark ? "text-[#8896a8]" : "text-[#4a5568]"
               }`}
             >
               Sign in to save your interests and pick up where you left off.
@@ -257,8 +257,8 @@ export default function OnboardingPage() {
                 disabled={authLoading}
                 className={`flex w-full items-center justify-center gap-2 rounded px-6 py-3.5 text-sm font-medium transition-colors disabled:opacity-60 ${
                   isDark
-                    ? "bg-white text-[#111110] hover:opacity-90"
-                    : "bg-[#1a1a1a] text-white hover:opacity-90"
+                    ? "bg-white text-[#0a0f1e] hover:opacity-90"
+                    : "bg-[#2563eb] text-white hover:opacity-90"
                 }`}
               >
                 {authLoading ? (
@@ -279,14 +279,14 @@ export default function OnboardingPage() {
                 )}
               </button>
 
-              <div className={`flex items-center gap-3 ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>
+              <div className={`flex items-center gap-3 ${isDark ? "text-[#8896a8]" : "text-[#4a5568]"}`}>
                 <span className="h-px flex-1 bg-current opacity-30" />
                 <span className="text-xs">or</span>
                 <span className="h-px flex-1 bg-current opacity-30" />
               </div>
 
               {magicLinkSent ? (
-                <p className={`text-sm ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>
+                <p className={`text-sm ${isDark ? "text-[#e8edf5]" : "text-[#0a0f1e]"}`}>
                   Check your email for the magic link.
                 </p>
               ) : (
@@ -299,8 +299,8 @@ export default function OnboardingPage() {
                     disabled={authLoading}
                     className={`w-full rounded px-4 py-3 text-sm transition-colors focus:outline-none focus:ring-0 ${
                       isDark
-                        ? "bg-[#1c1c1b] text-[#edebe8] placeholder:text-[#888886]"
-                        : "bg-white text-[#1a1a1a] placeholder:text-[#6b6b6b]"
+                        ? "bg-[#111827] text-[#e8edf5] placeholder:text-[#8896a8]"
+                        : "bg-white text-[#0a0f1e] placeholder:text-[#4a5568]"
                     }`}
                   />
                   <button
@@ -308,8 +308,8 @@ export default function OnboardingPage() {
                     disabled={authLoading}
                     className={`rounded px-6 py-3 text-sm font-medium transition-colors disabled:opacity-60 ${
                       isDark
-                        ? "border border-[#3a3a39] text-[#edebe8] hover:bg-[#252524]"
-                        : "border border-[#d4d4d4] text-[#1a1a1a] hover:bg-[#f5f5f4]"
+                        ? "border border-[#1e2d4a] text-[#e8edf5] hover:bg-[#111827]"
+                        : "border border-[#dde3ed] text-[#0a0f1e] hover:bg-[#dde3ed]"
                     }`}
                   >
                     Send magic link
@@ -327,7 +327,7 @@ export default function OnboardingPage() {
             <Link
               href="/feed"
               className={`text-sm transition-colors ${
-                isDark ? "text-[#888886] hover:text-[#edebe8]" : "text-[#6b6b6b] hover:text-[#1a1a1a]"
+                isDark ? "text-[#8896a8] hover:text-[#e8edf5]" : "text-[#4a5568] hover:text-[#0a0f1e]"
               }`}
             >
               Skip for now — go to feed
@@ -337,7 +337,7 @@ export default function OnboardingPage() {
               type="button"
               onClick={() => setStep(2)}
               className={`mt-8 text-sm ${
-                isDark ? "text-[#888886] hover:text-[#edebe8]" : "text-[#6b6b6b] hover:text-[#1a1a1a]"
+                isDark ? "text-[#8896a8] hover:text-[#e8edf5]" : "text-[#4a5568] hover:text-[#0a0f1e]"
               }`}
             >
               ← Back

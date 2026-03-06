@@ -106,7 +106,7 @@ export default function LandingPage() {
   return (
     <div
       className={`relative flex min-h-screen w-full flex-col transition-colors duration-200 ${
-        isDark ? "bg-[#111110]" : "bg-[#f8f7f5]"
+        isDark ? "bg-[#0a0f1e]" : "bg-[#f4f6fb]"
       }`}
     >
       {/* Ambient character background */}
@@ -118,7 +118,7 @@ export default function LandingPage() {
           <span
             key={i}
             className={`absolute font-mono text-[10px] select-none ${
-              isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"
+              isDark ? "text-[#2563eb]" : "text-[#0a0f1e]"
             }`}
             style={{
               left: x,
@@ -140,8 +140,8 @@ export default function LandingPage() {
         aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
         className={`fixed right-4 top-4 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-0 ${
           isDark
-            ? "text-[#888886] hover:text-[#edebe8]"
-            : "text-[#6b6b6b] hover:text-[#1a1a1a]"
+            ? "text-[#8896a8] hover:text-[#e8edf5]"
+            : "text-[#4a5568] hover:text-[#0a0f1e]"
         }`}
       >
         {isDark ? (
@@ -159,21 +159,21 @@ export default function LandingPage() {
       <section className="flex min-h-screen flex-col items-center justify-center px-4 py-16">
         <h1
           className={`mb-4 font-serif text-4xl font-normal tracking-tight sm:text-5xl md:text-6xl ${
-            isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"
+            isDark ? "text-[#e8edf5]" : "text-[#0a0f1e]"
           }`}
         >
           Kurrnt
         </h1>
         <p
           className={`mb-2 text-sm font-medium tracking-[0.2em] uppercase sm:text-base ${
-            isDark ? "text-[#888886]" : "text-[#6b6b6b]"
+            isDark ? "text-[#8896a8]" : "text-[#4a5568]"
           }`}
         >
           Intelligent Media for the AI Age
         </p>
         <p
           className={`mb-10 text-center text-sm leading-relaxed sm:text-base ${
-            isDark ? "text-[#888886]" : "text-[#6b6b6b]"
+            isDark ? "text-[#8896a8]" : "text-[#4a5568]"
           }`}
         >
           Pure signal, no noise.
@@ -183,8 +183,8 @@ export default function LandingPage() {
             href="/onboarding"
             className={`inline-flex items-center justify-center rounded px-10 py-4 text-sm font-medium tracking-wide transition-all duration-200 ${
               isDark
-                ? "bg-white text-[#111110] hover:opacity-90"
-                : "bg-[#1a1a1a] text-white hover:opacity-90"
+                ? "bg-[#2563eb] text-white hover:opacity-90"
+                : "bg-[#2563eb] text-white hover:opacity-90"
             }`}
           >
             Get Started
@@ -193,8 +193,8 @@ export default function LandingPage() {
             href="/signin"
             className={`inline-flex items-center justify-center rounded px-10 py-4 text-sm font-medium tracking-wide transition-all duration-200 ${
               isDark
-                ? "border border-[#3a3a39] text-[#edebe8] hover:bg-[#252524]"
-                : "border border-[#1a1a1a] text-[#1a1a1a] hover:bg-[#f0f0ef]"
+                ? "border border-[#1e2d4a] text-[#e8edf5] hover:bg-[#1e2d4a]"
+                : "border border-[#2563eb] text-[#0a0f1e] hover:bg-[#dde3ed]"
             }`}
           >
             Sign in
@@ -205,7 +205,7 @@ export default function LandingPage() {
       {/* Three-column features */}
       <section
         className={`border-t px-4 py-16 sm:px-6 ${
-          isDark ? "border-[#2a2a29]" : "border-[#e5e4e2]"
+          isDark ? "border-[#1e2d4a]" : "border-[#dde3ed]"
         }`}
       >
         <div className="mx-auto grid max-w-4xl grid-cols-1 gap-12 sm:grid-cols-3">
@@ -213,14 +213,14 @@ export default function LandingPage() {
             <div key={title} className="flex flex-col items-center text-center">
               <h3
                 className={`mb-2 font-serif text-lg font-medium ${
-                  isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"
+                  isDark ? "text-[#e8edf5]" : "text-[#0a0f1e]"
                 }`}
               >
                 {title}
               </h3>
               <p
                 className={`text-sm leading-relaxed ${
-                  isDark ? "text-[#888886]" : "text-[#6b6b6b]"
+                  isDark ? "text-[#8896a8]" : "text-[#4a5568]"
                 }`}
               >
                 {description}
