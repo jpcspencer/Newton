@@ -11,7 +11,7 @@ import type { User } from "@supabase/supabase-js";
 type FeedArticle = {
   title: string;
   keplerSummary: string;
-  source?: "news" | "hackernews" | "arxiv" | "github";
+  source?: "news" | "hackernews" | "arxiv" | "github" | "reddit";
   sourceName: string;
   publishedAt: string;
   url: string;
@@ -32,6 +32,8 @@ function getSourceDisplay(article: FeedArticle): string {
       return "arXiv";
     case "github":
       return "GitHub";
+    case "reddit":
+      return "Reddit";
     default:
       return "Unknown";
   }
@@ -99,7 +101,7 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 type FeedView = "card" | "list";
 type FeedSort = "importance" | "newest" | "source";
 
-const SOURCE_ORDER = ["Hacker News", "arXiv", "GitHub", "News"];
+const SOURCE_ORDER = ["Hacker News", "arXiv", "GitHub", "Reddit", "News"];
 
 const THEME_STORAGE_KEY = "kurrnt-theme";
 
@@ -143,7 +145,8 @@ export default function FeedPage() {
       arr.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
     } else {
       const sourceRank = (s: string) => {
-        const i = SOURCE_ORDER.indexOf(s);
+        const key = s.startsWith("Reddit") ? "Reddit" : s;
+        const i = SOURCE_ORDER.indexOf(key);
         return i >= 0 ? i : SOURCE_ORDER.length;
       };
       arr.sort((a, b) => {

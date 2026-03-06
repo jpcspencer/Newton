@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-type ArticleSource = "news" | "hackernews" | "arxiv" | "github";
+type ArticleSource = "news" | "hackernews" | "arxiv" | "github" | "reddit";
 
 type RawArticle = {
   title: string;
@@ -236,6 +236,16 @@ function normalizeTitleForDedup(title: string): string {
     .trim();
 }
 
+function deduplicateByUrl(articles: RawArticle[]): RawArticle[] {
+  const seenUrls = new Set<string>();
+  return articles.filter((a) => {
+    const url = a.url?.trim().toLowerCase() ?? "";
+    if (!url || seenUrls.has(url)) return false;
+    seenUrls.add(url);
+    return true;
+  });
+}
+
 function deduplicateByTitle(articles: RawArticle[]): RawArticle[] {
   const seen = new Set<string>();
   return articles.filter((a) => {
@@ -382,6 +392,82 @@ async function fetchArxiv(): Promise<RawArticle[]> {
   return entries;
 }
 
+const REDDIT_SUBREDDITS = [
+  "artificial",
+  "MachineLearning",
+  "technology",
+  "Futurology",
+  "singularity",
+  "space",
+  "Physics",
+  "neuroscience",
+  "Biotech",
+  "QuantumComputing",
+  "cybersecurity",
+  "climatescience",
+  "robotics",
+];
+
+const REDDIT_USER_AGENT = "Kurrnt/1.0 (kurrnt.app)";
+
+async function fetchReddit(): Promise<RawArticle[]> {
+  const allArticles: RawArticle[] = [];
+
+  for (const subreddit of REDDIT_SUBREDDITS) {
+    try {
+      const res = await fetch(`https://www.reddit.com/r/${subreddit}/hot.json?limit=5`, {
+        headers: { "User-Agent": REDDIT_USER_AGENT },
+      });
+      const data = (await res.json()) as {
+        data?: {
+          children?: Array<{
+            data?: {
+              title?: string;
+              url?: string;
+              permalink?: string;
+              selftext?: string;
+              created_utc?: number;
+              thumbnail?: string;
+            };
+          }>;
+        };
+      };
+
+      const children = data?.data?.children ?? [];
+      for (const child of children) {
+        const post = child?.data;
+        if (!post?.title) continue;
+
+        const url = post.url ?? "";
+        const permalink = post.permalink ?? "";
+        const selftext = (post.selftext ?? "").trim();
+
+        // Filter out low-quality text-only posts: reddit.com/r/ url with empty selftext
+        if (url.includes("reddit.com/r/") && !selftext) continue;
+
+        const finalUrl = url && !url.includes("reddit.com/r/") ? url : `https://reddit.com${permalink.startsWith("/") ? "" : "/"}${permalink}`;
+        const description = selftext ? selftext.slice(0, 200) + (selftext.length > 200 ? "…" : "") : post.title;
+        const thumbnail = post.thumbnail;
+        const urlToImage = typeof thumbnail === "string" && thumbnail.startsWith("https") ? thumbnail : null;
+
+        allArticles.push({
+          title: post.title.trim(),
+          description,
+          source: "reddit" as const,
+          sourceName: `Reddit · r/${subreddit}`,
+          publishedAt: post.created_utc ? new Date(post.created_utc * 1000).toISOString() : new Date().toISOString(),
+          url: finalUrl,
+          urlToImage,
+        });
+      }
+    } catch (err) {
+      console.warn(`[Feed API] Reddit fetch failed for r/${subreddit}:`, err);
+    }
+  }
+
+  return allArticles.filter((a) => a.title && a.url);
+}
+
 async function fetchGitHubTrending(): Promise<RawArticle[]> {
   try {
     const res = await fetch("https://gh-trending-api.protest.eu/repositories?since=daily", {
@@ -458,6 +544,7 @@ export async function GET() {
     sources.push(fetchHackerNews());
     sources.push(fetchArxiv());
     sources.push(fetchGitHubTrending());
+    sources.push(fetchReddit());
 
     const results = await Promise.allSettled(sources);
     const allRaw: RawArticle[] = [];
@@ -468,7 +555,8 @@ export async function GET() {
       }
     }
 
-    const deduped = deduplicateByTitle(allRaw);
+    const dedupedByUrl = deduplicateByUrl(allRaw);
+    const deduped = deduplicateByTitle(dedupedByUrl);
 
     const withEnoughDescription = deduped.filter((a) => {
       const desc = a.description?.trim() ?? "";
