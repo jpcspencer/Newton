@@ -18,6 +18,7 @@ type FeedArticle = {
   urlToImage?: string | null;
   importance: number;
   keplersInsight: string | null;
+  communityTake?: string | null;
   tag: string;
 };
 
@@ -512,6 +513,14 @@ export default function FeedPage() {
                   </p>
                 </div>
               )}
+              {expandedArticle.communityTake && (
+                <div className={`mb-6 rounded-r border-l-2 pl-4 py-3 ${isDark ? "border-l-[#8b7355]" : "border-l-[#c4a574]"}`}>
+                  <p className={`text-[10px] font-medium uppercase tracking-[0.2em] ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>COMMUNITY TAKE</p>
+                  <p className={`mt-1 text-sm leading-relaxed italic ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>
+                    {expandedArticle.communityTake}
+                  </p>
+                </div>
+              )}
               <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap gap-2">
                   {[
@@ -995,6 +1004,12 @@ export default function FeedPage() {
                               <p className={`text-sm italic leading-relaxed break-words ${listTextCls}`}>{article.keplersInsight}</p>
                             </div>
                           )}
+                          {article.communityTake && (
+                            <div className={`mt-3 border-l-2 pl-3 py-1 ${isDark ? "border-l-[#8b7355]" : "border-l-[#c4a574]"}`}>
+                              <p className={`text-xs font-medium uppercase tracking-[0.15em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`}>COMMUNITY TAKE</p>
+                              <p className={`text-sm italic leading-relaxed break-words ${listTextCls}`}>{article.communityTake}</p>
+                            </div>
+                          )}
                           <div className="mt-3 flex flex-wrap gap-2">
                             {[
                               { label: "What does this mean?", question: `Explain this story in simple terms and why it matters: "${article.title}" — ${article.keplerSummary}` },
@@ -1161,6 +1176,12 @@ export default function FeedPage() {
                             <div className={`mb-4 rounded-r border-l-2 pl-4 py-2 ${isDark ? "border-l-[#8b7355]" : "border-l-[#c4a574]"}`}>
                               <p className={`text-xs font-medium uppercase tracking-[0.15em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`}>KEPLER&apos;S INSIGHT</p>
                               <p className={`mt-1 text-sm leading-relaxed italic break-words ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>{article.keplersInsight}</p>
+                            </div>
+                          )}
+                          {article.communityTake && (
+                            <div className={`mb-4 rounded-r border-l-2 pl-4 py-2 ${isDark ? "border-l-[#8b7355]" : "border-l-[#c4a574]"}`}>
+                              <p className={`text-xs font-medium uppercase tracking-[0.15em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`}>COMMUNITY TAKE</p>
+                              <p className={`mt-1 text-sm leading-relaxed italic break-words ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>{article.communityTake}</p>
                             </div>
                           )}
                           <div className="mb-4 flex flex-wrap gap-2">

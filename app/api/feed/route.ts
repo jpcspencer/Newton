@@ -17,6 +17,7 @@ type RawArticle = {
   url: string;
   urlToImage?: string | null;
   importanceHint?: string;
+  redditPermalink?: string;
 };
 
 type EnrichedArticle = {
@@ -29,6 +30,7 @@ type EnrichedArticle = {
   urlToImage?: string | null;
   importance: number;
   keplersInsight: string | null;
+  communityTake: string | null;
   tag: string;
 };
 
@@ -36,6 +38,7 @@ type ClaudeEnrichment = {
   keplerSummary?: string;
   importance?: number;
   keplersInsight?: string | null;
+  communityTake?: string | null;
   tag?: string;
 };
 
@@ -46,10 +49,12 @@ const ENRICHMENT_USER_TEMPLATE = `Enrich this article for the Kurrnt feed. Retur
 - keplerSummary: a 2-3 sentence summary in Kepler's voice — clear, intelligent, no jargon, written for a curious non-expert
 - importance: a number 1-5 (integer) based on genuine significance to science and technology — must be a number, not a string
 - keplersInsight: one sentence describing Kepler's insight — a connection between this story and something from a different field that most people wouldn't put together. Only include if genuinely interesting, otherwise return null
-- tag: one word category tag like "AI", "Space", "Biotech", "Physics", "Climate"
+- tag: one word category tag like "AI", "Space", "Biotech", "Physics", "Climate", "Cybersecurity", "Robotics", "Neuroscience", "Quantum"
+{communityTakeInstruction}
 
 Article title: {title}
 Article description: {description}
+{redditComments}
 {importanceHint}
 {interestsHint}`;
 
@@ -57,6 +62,7 @@ type CachedEnrichment = {
   kepler_summary: string | null;
   importance_score: number;
   kepler_insight: string | null;
+  community_take: string | null;
   tag: string | null;
   created_at: string;
 };
@@ -66,7 +72,7 @@ async function getCachedEnrichment(url: string): Promise<CachedEnrichment | null
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("article_cache")
-      .select("kepler_summary, importance_score, kepler_insight, tag, created_at")
+      .select("kepler_summary, importance_score, kepler_insight, community_take, tag, created_at")
       .eq("url", url)
       .single();
 
@@ -84,7 +90,7 @@ async function getCachedEnrichment(url: string): Promise<CachedEnrichment | null
 async function saveToCache(
   url: string,
   title: string,
-  enrichment: { keplerSummary: string; importance: number; keplersInsight: string | null; tag: string }
+  enrichment: { keplerSummary: string; importance: number; keplersInsight: string | null; communityTake: string | null; tag: string }
 ): Promise<void> {
   try {
     const supabase = createAdminClient();
@@ -93,6 +99,7 @@ async function saveToCache(
         url,
         title,
         kepler_insight: enrichment.keplersInsight,
+        community_take: enrichment.communityTake,
         importance_score: enrichment.importance,
         kepler_summary: enrichment.keplerSummary,
         tag: enrichment.tag,
@@ -130,6 +137,7 @@ async function enrichArticle(
       keplerSummary: cached.kepler_summary ?? article.description,
       importance: Math.min(5, Math.max(1, cached.importance_score)),
       keplersInsight: cached.kepler_insight ?? null,
+      communityTake: cached.community_take ?? null,
       tag: cached.tag ?? article.sourceName,
       source: article.source,
       sourceName: article.sourceName,
@@ -143,10 +151,24 @@ async function enrichArticle(
     userInterests && userInterests.length > 0
       ? `\nThe user is particularly interested in: ${userInterests.join(", ")}. When generating keplersInsight, emphasize connections and insights relevant to these areas when genuinely applicable. Do not force connections — only when the link is meaningful.`
       : "";
+
+  let redditComments = "";
+  let communityTakeInstruction = "";
+  if (article.source === "reddit" && article.redditPermalink) {
+    const comments = await fetchRedditTopComments(article.redditPermalink);
+    if (comments.length > 0) {
+      communityTakeInstruction =
+        "- communityTake: (only for Reddit posts) a 1-2 sentence summary of what the Reddit community is saying about this topic based on the top comments below. Capture the prevailing sentiment, key points, or debates. If not Reddit or no useful comments, return null.";
+      redditComments = `\nTop Reddit comments:\n${comments.map((c, i) => `${i + 1}. ${c}`).join("\n")}\n`;
+    }
+  }
+
   const userPrompt = ENRICHMENT_USER_TEMPLATE.replace("{title}", article.title)
     .replace("{description}", article.description)
     .replace("{importanceHint}", hintLine)
-    .replace("{interestsHint}", interestsHint);
+    .replace("{interestsHint}", interestsHint)
+    .replace("{communityTakeInstruction}", communityTakeInstruction)
+    .replace("{redditComments}", redditComments);
 
   const systemPrompt =
     userInterests && userInterests.length > 0
@@ -193,6 +215,10 @@ async function enrichArticle(
       : typeof (parsed as { noc?: string }).noc === "string" && (parsed as { noc?: string }).noc?.trim()
         ? (parsed as { noc?: string }).noc!.trim()
         : null);
+    const communityTake =
+      typeof parsed.communityTake === "string" && parsed.communityTake.trim()
+        ? parsed.communityTake.trim()
+        : null;
     const tag = typeof parsed.tag === "string" && parsed.tag.trim() ? parsed.tag.trim() : "Science";
 
     const enriched: EnrichedArticle = {
@@ -200,6 +226,7 @@ async function enrichArticle(
       keplerSummary,
       importance,
       keplersInsight,
+      communityTake,
       tag,
       source: article.source,
       sourceName: article.sourceName,
@@ -209,6 +236,7 @@ async function enrichArticle(
       keplerSummary,
       importance,
       keplersInsight,
+      communityTake,
       tag,
     }).catch(() => {});
 
@@ -220,11 +248,25 @@ async function enrichArticle(
       keplerSummary: article.description,
       importance: 3,
       keplersInsight: null,
+      communityTake: null,
       tag: article.sourceName,
       source: article.source,
       sourceName: article.sourceName,
     };
   }
+}
+
+function tagMatchesInterest(tag: string, interest: string): boolean {
+  const t = tag.toLowerCase().trim();
+  const i = interest.toLowerCase().trim();
+  return t === i || t.includes(i) || i.includes(t);
+}
+
+function filterByInterests(articles: EnrichedArticle[], userInterests: string[] | undefined): EnrichedArticle[] {
+  if (!userInterests || userInterests.length === 0) return articles;
+  return articles.filter((a) =>
+    userInterests.some((interest) => tagMatchesInterest(a.tag, interest))
+  );
 }
 
 function normalizeTitleForDedup(title: string): string {
@@ -410,6 +452,42 @@ const REDDIT_SUBREDDITS = [
 
 const REDDIT_USER_AGENT = "Kurrnt/1.0 (kurrnt.app)";
 
+function extractRedditPostId(permalink: string): { subreddit: string; postId: string } | null {
+  const match = /\/r\/([^/]+)\/comments\/([^/]+)/.exec(permalink);
+  if (!match) return null;
+  return { subreddit: match[1], postId: match[2] };
+}
+
+async function fetchRedditTopComments(permalink: string): Promise<string[]> {
+  const parsed = extractRedditPostId(permalink);
+  if (!parsed) return [];
+  const { subreddit, postId } = parsed;
+  try {
+    const url = `https://www.reddit.com/r/${subreddit}/comments/${postId}.json`;
+    const res = await fetch(url, { headers: { "User-Agent": REDDIT_USER_AGENT } });
+    if (!res.ok) return [];
+    const data = (await res.json()) as Array<{
+      data?: {
+        children?: Array<{
+          data?: { body?: string; score?: number; author?: string };
+        }>;
+      };
+    }>;
+    const listing = data?.[1]?.data?.children ?? [];
+    const comments: Array<{ body: string; score: number }> = [];
+    for (const child of listing) {
+      const c = child?.data;
+      if (c?.body && typeof c.body === "string") {
+        comments.push({ body: c.body.trim(), score: c.score ?? 0 });
+      }
+    }
+    comments.sort((a, b) => b.score - a.score);
+    return comments.slice(0, 10).map((c) => c.body);
+  } catch {
+    return [];
+  }
+}
+
 async function fetchReddit(): Promise<RawArticle[]> {
   const allArticles: RawArticle[] = [];
 
@@ -458,6 +536,7 @@ async function fetchReddit(): Promise<RawArticle[]> {
           publishedAt: post.created_utc ? new Date(post.created_utc * 1000).toISOString() : new Date().toISOString(),
           url: finalUrl,
           urlToImage,
+          redditPermalink: permalink ? (permalink.startsWith("/") ? permalink : `/${permalink}`) : undefined,
         });
       }
     } catch (err) {
@@ -567,9 +646,10 @@ export async function GET() {
       withEnoughDescription.map((a) => enrichArticle(a, anthropicKey, userInterests))
     );
 
-    enriched.sort((a, b) => b.importance - a.importance);
+    const filtered = filterByInterests(enriched, userInterests);
+    filtered.sort((a, b) => b.importance - a.importance);
 
-    return NextResponse.json(enriched);
+    return NextResponse.json(filtered);
   } catch (error) {
     console.error("[Feed API] Unexpected error:", error);
     return NextResponse.json(
