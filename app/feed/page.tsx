@@ -105,6 +105,27 @@ type FeedSort = "importance" | "newest" | "source";
 const SOURCE_ORDER = ["Hacker News", "arXiv", "GitHub", "Reddit", "News"];
 
 const THEME_STORAGE_KEY = "kurrnt-theme";
+const GUEST_INTERESTS_KEY = "kurrnt-guest-interests";
+
+function getFeedUrl(user: User | null): string {
+  if (user) return "/api/feed";
+  if (typeof window === "undefined") return "/api/feed";
+  try {
+    const raw = localStorage.getItem(GUEST_INTERESTS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as unknown;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const interests = parsed.filter((i): i is string => typeof i === "string");
+        if (interests.length > 0) {
+          return `/api/feed?interests=${encodeURIComponent(JSON.stringify(interests))}`;
+        }
+      }
+    }
+  } catch {
+    // Ignore
+  }
+  return "/api/feed";
+}
 
 const CARD_SIZE_ORDER: CardSize[] = ["compact", "default", "comfortable"];
 
@@ -220,7 +241,7 @@ export default function FeedPage() {
   const fetchFeed = useCallback(() => {
     setFeedLoading(true);
     setFeedError(null);
-    fetch("/api/feed")
+    fetch(getFeedUrl(user))
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load feed");
         return res.json();
@@ -238,10 +259,10 @@ export default function FeedPage() {
       })
       .catch((err) => setFeedError(err instanceof Error ? err.message : "Failed to load feed"))
       .finally(() => setFeedLoading(false));
-  }, []);
+  }, [user]);
 
   const fetchFeedSilently = useCallback(() => {
-    fetch("/api/feed")
+    fetch(getFeedUrl(user))
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load feed");
         return res.json();
@@ -265,7 +286,7 @@ export default function FeedPage() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchFeed();

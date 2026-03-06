@@ -8,10 +8,18 @@ import { INTERESTS } from "@/lib/interests";
 
 const THEME_STORAGE_KEY = "kurrnt-theme";
 const INTERESTS_COOKIE = "kurrnt-interests";
+const GUEST_INTERESTS_KEY = "kurrnt-guest-interests";
+const GUEST_INTERESTS_COOKIE = "kurrnt-guest-interests";
 
 function setInterestsCookie(interests: string[]) {
   if (typeof document === "undefined") return;
   document.cookie = `${INTERESTS_COOKIE}=${encodeURIComponent(JSON.stringify(interests))}; path=/; max-age=600; SameSite=Lax`;
+}
+
+function setGuestInterests(interests: string[]) {
+  if (typeof document === "undefined") return;
+  localStorage.setItem(GUEST_INTERESTS_KEY, JSON.stringify(interests));
+  document.cookie = `${GUEST_INTERESTS_COOKIE}=${encodeURIComponent(JSON.stringify(interests))}; path=/; max-age=31536000; SameSite=Lax`;
 }
 
 export default function OnboardingPage() {
@@ -326,6 +334,7 @@ export default function OnboardingPage() {
 
             <Link
               href="/feed"
+              onClick={() => setGuestInterests(Array.from(interests))}
               className={`text-sm transition-colors ${
                 isDark ? "text-[#888886] hover:text-[#edebe8]" : "text-[#6b6b6b] hover:text-[#111110]"
               }`}

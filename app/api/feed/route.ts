@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase-server";
 import { createAdminClient } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
+
+const GUEST_INTERESTS_COOKIE = "kurrnt-guest-interests";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -262,11 +265,26 @@ function tagMatchesInterest(tag: string, interest: string): boolean {
   return t === i || t.includes(i) || i.includes(t);
 }
 
+const MIN_FEED_ARTICLES = 10;
+
 function filterByInterests(articles: EnrichedArticle[], userInterests: string[] | undefined): EnrichedArticle[] {
   if (!userInterests || userInterests.length === 0) return articles;
-  return articles.filter((a) =>
+
+  const matching = articles.filter((a) =>
     userInterests.some((interest) => tagMatchesInterest(a.tag, interest))
   );
+
+  if (matching.length >= MIN_FEED_ARTICLES) return matching;
+
+  const matchingUrls = new Set(matching.map((a) => a.url));
+  const rest = articles
+    .filter((a) => !matchingUrls.has(a.url))
+    .sort((a, b) => b.importance - a.importance);
+
+  const fillCount = MIN_FEED_ARTICLES - matching.length;
+  const filled = [...matching, ...rest.slice(0, fillCount)];
+  filled.sort((a, b) => b.importance - a.importance);
+  return filled;
 }
 
 function normalizeTitleForDedup(title: string): string {
@@ -488,62 +506,69 @@ async function fetchRedditTopComments(permalink: string): Promise<string[]> {
   }
 }
 
-async function fetchReddit(): Promise<RawArticle[]> {
-  const allArticles: RawArticle[] = [];
-
-  for (const subreddit of REDDIT_SUBREDDITS) {
-    try {
-      const res = await fetch(`https://www.reddit.com/r/${subreddit}/hot.json?limit=5`, {
-        headers: { "User-Agent": REDDIT_USER_AGENT },
-      });
-      const data = (await res.json()) as {
-        data?: {
-          children?: Array<{
-            data?: {
-              title?: string;
-              url?: string;
-              permalink?: string;
-              selftext?: string;
-              created_utc?: number;
-              thumbnail?: string;
-            };
-          }>;
-        };
+async function fetchRedditSubreddit(subreddit: string): Promise<RawArticle[]> {
+  try {
+    const res = await fetch(`https://www.reddit.com/r/${subreddit}/hot.json?limit=5`, {
+      headers: { "User-Agent": REDDIT_USER_AGENT },
+    });
+    const data = (await res.json()) as {
+      data?: {
+        children?: Array<{
+          data?: {
+            title?: string;
+            url?: string;
+            permalink?: string;
+            selftext?: string;
+            created_utc?: number;
+            thumbnail?: string;
+          };
+        }>;
       };
+    };
 
-      const children = data?.data?.children ?? [];
-      for (const child of children) {
-        const post = child?.data;
-        if (!post?.title) continue;
+    const children = data?.data?.children ?? [];
+    const articles: RawArticle[] = [];
+    for (const child of children) {
+      const post = child?.data;
+      if (!post?.title) continue;
 
-        const url = post.url ?? "";
-        const permalink = post.permalink ?? "";
-        const selftext = (post.selftext ?? "").trim();
+      const url = post.url ?? "";
+      const permalink = post.permalink ?? "";
+      const selftext = (post.selftext ?? "").trim();
 
-        // Filter out low-quality text-only posts: reddit.com/r/ url with empty selftext
-        if (url.includes("reddit.com/r/") && !selftext) continue;
+      if (url.includes("reddit.com/r/") && !selftext) continue;
 
-        const finalUrl = url && !url.includes("reddit.com/r/") ? url : `https://reddit.com${permalink.startsWith("/") ? "" : "/"}${permalink}`;
-        const description = selftext ? selftext.slice(0, 200) + (selftext.length > 200 ? "…" : "") : post.title;
-        const thumbnail = post.thumbnail;
-        const urlToImage = typeof thumbnail === "string" && thumbnail.startsWith("https") ? thumbnail : null;
+      const finalUrl = url && !url.includes("reddit.com/r/") ? url : `https://reddit.com${permalink.startsWith("/") ? "" : "/"}${permalink}`;
+      const description = selftext ? selftext.slice(0, 200) + (selftext.length > 200 ? "…" : "") : post.title;
+      const thumbnail = post.thumbnail;
+      const urlToImage = typeof thumbnail === "string" && thumbnail.startsWith("https") ? thumbnail : null;
 
-        allArticles.push({
-          title: post.title.trim(),
-          description,
-          source: "reddit" as const,
-          sourceName: `Reddit · r/${subreddit}`,
-          publishedAt: post.created_utc ? new Date(post.created_utc * 1000).toISOString() : new Date().toISOString(),
-          url: finalUrl,
-          urlToImage,
-          redditPermalink: permalink ? (permalink.startsWith("/") ? permalink : `/${permalink}`) : undefined,
-        });
-      }
-    } catch (err) {
-      console.warn(`[Feed API] Reddit fetch failed for r/${subreddit}:`, err);
+      articles.push({
+        title: post.title.trim(),
+        description,
+        source: "reddit" as const,
+        sourceName: `Reddit · r/${subreddit}`,
+        publishedAt: post.created_utc ? new Date(post.created_utc * 1000).toISOString() : new Date().toISOString(),
+        url: finalUrl,
+        urlToImage,
+        redditPermalink: permalink ? (permalink.startsWith("/") ? permalink : `/${permalink}`) : undefined,
+      });
     }
+    return articles;
+  } catch (err) {
+    console.warn(`[Feed API] Reddit fetch failed for r/${subreddit}:`, err);
+    return [];
   }
+}
 
+async function fetchReddit(): Promise<RawArticle[]> {
+  const results = await Promise.allSettled(
+    REDDIT_SUBREDDITS.map((sub) => fetchRedditSubreddit(sub))
+  );
+  const allArticles: RawArticle[] = [];
+  for (const result of results) {
+    if (result.status === "fulfilled") allArticles.push(...result.value);
+  }
   return allArticles.filter((a) => a.title && a.url);
 }
 
@@ -591,7 +616,7 @@ async function fetchGitHubTrending(): Promise<RawArticle[]> {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const newsApiKey = process.env.NEWS_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
@@ -612,7 +637,36 @@ export async function GET() {
         userInterests = interests.filter((i): i is string => typeof i === "string");
       }
     } catch {
-      // Fall back to default — no personalization
+      // Fall back to guest interests
+    }
+
+    if (!userInterests || userInterests.length === 0) {
+      const { searchParams } = new URL(request.url);
+      const queryInterests = searchParams.get("interests");
+      if (typeof queryInterests === "string" && queryInterests.trim()) {
+        try {
+          const parsed = JSON.parse(decodeURIComponent(queryInterests.trim())) as unknown;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            userInterests = parsed.filter((i): i is string => typeof i === "string");
+          }
+        } catch {
+          // Ignore malformed query param
+        }
+      }
+      if (!userInterests || userInterests.length === 0) {
+        const cookieStore = await cookies();
+        const cookieVal = cookieStore.get(GUEST_INTERESTS_COOKIE)?.value;
+        if (cookieVal) {
+          try {
+            const parsed = JSON.parse(decodeURIComponent(cookieVal)) as unknown;
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              userInterests = parsed.filter((i): i is string => typeof i === "string");
+            }
+          } catch {
+            // Ignore malformed cookie
+          }
+        }
+      }
     }
 
     const sources: Promise<RawArticle[]>[] = [];
