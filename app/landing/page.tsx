@@ -29,7 +29,7 @@ type AmbientChar = {
   char: string;
   x: number;
   y: number;
-  opacity: number;
+  opacitySeed: number;
   driftX: number;
   driftY: number;
   driftDuration: number;
@@ -52,10 +52,30 @@ export default function LandingPage() {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
+  function getIsDark(): boolean {
+    if (typeof document === "undefined") return false;
+    if (document.documentElement.classList.contains("dark")) return true;
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    setIsDark(stored === "dark");
+    if (stored === "dark") return true;
+    if (stored === "light") return false;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+
+  useEffect(() => {
+    setIsDark(getIsDark());
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => setIsDark(getIsDark());
+    mediaQuery.addEventListener("change", handleChange);
+    window.addEventListener("storage", handleChange);
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange);
+      window.removeEventListener("storage", handleChange);
+    };
   }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDark);
+  }, [isDark]);
 
   useEffect(() => {
     const chars: AmbientChar[] = [];
@@ -69,7 +89,7 @@ export default function LandingPage() {
         char: pickRandomChar(),
         x: Math.random() * w,
         y: Math.random() * h,
-        opacity: 0.03 + Math.random() * 0.03,
+        opacitySeed: Math.random(),
         driftX: Math.cos(angle) * driftDistance,
         driftY: Math.sin(angle) * driftDistance,
         driftDuration,
@@ -99,6 +119,7 @@ export default function LandingPage() {
     const next = !isDark;
     setIsDark(next);
     localStorage.setItem(THEME_STORAGE_KEY, next ? "dark" : "light");
+    document.documentElement.classList.toggle("dark", next);
   }
 
   return (
@@ -112,24 +133,27 @@ export default function LandingPage() {
         className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
         aria-hidden
       >
-        {ambientChars.map(({ char, x, y, opacity, driftX, driftY, driftDuration, driftDelay }, i) => (
-          <span
-            key={i}
-            className={`absolute font-mono text-[10px] select-none ${
-              isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"
-            }`}
-            style={{
-              left: x,
-              top: y,
-              opacity,
-              "--drift-x": `${driftX}px`,
-              "--drift-y": `${driftY}px`,
-              animation: `ambient-char-drift ${driftDuration}s linear ${driftDelay}s infinite alternate`,
-            } as React.CSSProperties}
-          >
-            {char}
-          </span>
-        ))}
+        {ambientChars.map(({ char, x, y, opacitySeed, driftX, driftY, driftDuration, driftDelay }, i) => {
+          const opacity = isDark ? 0.03 + opacitySeed * 0.04 : 0.05 + opacitySeed * 0.04;
+          const color = isDark ? "#ffffff" : "#000000";
+          return (
+            <span
+              key={i}
+              className="absolute font-mono text-[10px] select-none"
+              style={{
+                left: x,
+                top: y,
+                color,
+                opacity,
+                "--drift-x": `${driftX}px`,
+                "--drift-y": `${driftY}px`,
+                animation: `ambient-char-drift ${driftDuration}s linear ${driftDelay}s infinite alternate`,
+              } as React.CSSProperties}
+            >
+              {char}
+            </span>
+          );
+        })}
       </div>
 
       <div className="relative z-10">
