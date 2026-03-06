@@ -335,6 +335,17 @@ export default function FeedPage() {
     setKeplerError(null);
   }
 
+  function toggleKeplerForArticle(article: FeedArticle) {
+    const isCurrentlyExpanded = keplerExpandedArticle?.url === article.url || (keplerExpandedArticle?.title === article.title && !article.url);
+    if (isCurrentlyExpanded) {
+      setKeplerExpandedArticle(null);
+    } else {
+      setExpandedArticle(null);
+      setKeplerExpandedArticle(article);
+      setKeplerError(null);
+    }
+  }
+
   async function submitKeplerQuery(article: FeedArticle, query: string) {
     const trimmed = query.trim();
     if (!trimmed || keplerLoading) return;
@@ -956,69 +967,88 @@ export default function FeedPage() {
                   if (isKeplerExpanded && keplerExpandedArticle) {
                     const key = article.url || article.title;
                     const messages = conversationsByArticle[key] ?? [];
+                    const listMutedCls = isDark ? "text-[#888886]" : "text-[#6b6b6b]";
+                    const listTextCls = isDark ? "text-[#edebe8]" : "text-[#1a1a1a]";
                     return (
                       <div
                         key={article.url || index}
                         className={`flex flex-col border-b animate-[kepler-expand-in_0.25s_ease-out] ${isDark ? "border-[#2a2a29] bg-[#1c1c1b]" : "border-[#f0f0ef] bg-[#ffffff]"}`}
                       >
-                        <div className="relative flex shrink-0 items-start justify-between border-b px-4 py-3 sm:px-6" style={isDark ? { borderColor: "#2a2a29" } : { borderColor: "#e5e4e2" }}>
-                          <div className="min-w-0 flex-1 pr-10">
-                            <h3 className={`font-serif text-lg font-medium leading-tight ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>
-                              {article.title}
-                            </h3>
-                            {article.keplersInsight && (
-                              <div className={`mt-2 border-l-2 pl-3 py-1 ${isDark ? "border-l-[#8b7355]" : "border-l-[#c4a574]"}`}>
-                                <p className={`text-xs font-medium uppercase tracking-[0.15em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`}>KEPLER&apos;S INSIGHT</p>
-                                <p className={`text-sm italic leading-relaxed break-words ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>{article.keplersInsight}</p>
-                              </div>
-                            )}
+                        {/* Full list item content */}
+                        <div className="px-4 py-4 sm:px-6">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <span className={`text-xs font-medium uppercase tracking-[0.1em] ${listMutedCls}`}>{article.tag}</span>
+                            <span className={`text-xs ${listMutedCls}`}>
+                              <time dateTime={article.publishedAt}>{formatRelativeTime(article.publishedAt)}</time>
+                              <span className="mx-1.5">·</span>
+                              <a href={article.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{getSourceDisplay(article)}</a>
+                            </span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setKeplerExpandedArticle(null)}
-                            aria-label="Close"
-                            className={`absolute right-4 top-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:opacity-70 ${
-                              isDark ? "text-[#888886] hover:text-[#edebe8]" : "text-[#6b6b6b] hover:text-[#1a1a1a]"
-                            }`}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                              <path d="M18 6 6 18" />
-                              <path d="m6 6 12 12" />
-                            </svg>
-                          </button>
+                          <h3 className={`font-serif text-lg font-medium leading-tight ${listTextCls}`}>{article.title}</h3>
+                          <p className={`mt-2 text-sm leading-relaxed ${listMutedCls}`}>{article.keplerSummary}</p>
+                          {article.keplersInsight && (
+                            <div className={`mt-3 border-l-2 pl-3 py-1 ${isDark ? "border-l-[#8b7355]" : "border-l-[#c4a574]"}`}>
+                              <p className={`text-xs font-medium uppercase tracking-[0.15em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`}>KEPLER&apos;S INSIGHT</p>
+                              <p className={`text-sm italic leading-relaxed break-words ${listTextCls}`}>{article.keplersInsight}</p>
+                            </div>
+                          )}
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {[
+                              { label: "What does this mean?", question: `Explain this story in simple terms and why it matters: "${article.title}" — ${article.keplerSummary}` },
+                              { label: "What should I know?", question: `What key context and background do I need to fully understand this story? "${article.title}" — ${article.keplerSummary}` },
+                              { label: "What happens next?", question: `What are the implications of this story and where does it lead? "${article.title}" — ${article.keplerSummary}` },
+                            ].map(({ label, question }) => (
+                              <button
+                                key={label}
+                                type="button"
+                                onClick={() => submitKeplerQuery(article, question)}
+                                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                                  isDark ? "border-[#2a2a29] bg-transparent text-[#edebe8] hover:bg-[#1c1c1b]" : "border-[#e5e4e2] bg-transparent text-[#1a1a1a] hover:bg-[#e5e4e2]"
+                                }`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <a href={article.url} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1.5 text-xs ${isDark ? "text-[#888886] hover:text-[#edebe8]" : "text-[#6b6b6b] hover:text-[#1a1a1a]"}`}>
+                              Read original article <span aria-hidden>→</span>
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => toggleKeplerForArticle(article)}
+                              className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                                isDark ? "border-[#2a2a29] bg-transparent text-[#edebe8] hover:bg-[#1c1c1b]" : "border-[#e5e4e2] bg-transparent text-[#1a1a1a] hover:bg-[#e5e4e2]"
+                              }`}
+                            >
+                              Collapse chat
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex flex-col">
+                        {/* Chat section below */}
+                        <div className="flex flex-col border-t" style={isDark ? { borderColor: "#2a2a29" } : { borderColor: "#e5e4e2" }}>
                           <div className={`overflow-y-auto ${messages.length > 0 || keplerLoading || keplerError ? "max-h-[40vh] px-4 py-2 sm:px-6" : "px-4 py-0 sm:px-6"}`}>
                             <div className="space-y-4">
-                            {messages.map((msg, i) => (
-                              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                                <div
-                                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                                    msg.role === "user"
-                                      ? isDark ? "bg-white text-[#111110]" : "bg-[#1a1a1a] text-white"
-                                      : isDark ? "bg-[#252524] text-[#edebe8]" : "bg-[#f5f5f4] text-[#1a1a1a]"
-                                  }`}
-                                >
-                                  {msg.role === "assistant" ? (
-                                    <ResponseContent content={msg.content} isDark={isDark} />
-                                  ) : (
-                                    <p className="whitespace-pre-wrap">{msg.content}</p>
-                                  )}
+                              {messages.map((msg, i) => (
+                                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                                  <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
+                                    msg.role === "user" ? isDark ? "bg-white text-[#111110]" : "bg-[#1a1a1a] text-white"
+                                    : isDark ? "bg-[#252524] text-[#edebe8]" : "bg-[#f5f5f4] text-[#1a1a1a]"
+                                  }`}>
+                                    {msg.role === "assistant" ? <ResponseContent content={msg.content} isDark={isDark} /> : <p className="whitespace-pre-wrap">{msg.content}</p>}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
-                            {keplerLoading && (
-                              <div className={`flex items-center gap-2 ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>
-                                <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                </svg>
-                                <span className="text-sm">Thinking...</span>
-                              </div>
-                            )}
-                            {keplerError && !keplerLoading && (
-                              <p className={`text-sm ${isDark ? "text-red-400" : "text-red-600"}`}>{keplerError}</p>
-                            )}
+                              ))}
+                              {keplerLoading && (
+                                <div className={`flex items-center gap-2 ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>
+                                  <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                  </svg>
+                                  <span className="text-sm">Thinking...</span>
+                                </div>
+                              )}
+                              {keplerError && !keplerLoading && <p className={`text-sm ${isDark ? "text-red-400" : "text-red-600"}`}>{keplerError}</p>}
                             </div>
                           </div>
                           <form onSubmit={(e) => handleKeplerSubmit(e, article)} className="shrink-0 border-t px-4 py-2 sm:px-6" style={isDark ? { borderColor: "#2a2a29" } : { borderColor: "#e5e4e2" }}>
@@ -1029,20 +1059,9 @@ export default function FeedPage() {
                                 onChange={(e) => setKeplerMessage(e.target.value)}
                                 placeholder="Ask Kepler about this story..."
                                 disabled={keplerLoading}
-                                className={`flex-1 rounded-md py-2.5 pl-3 pr-3 text-sm transition-colors focus:outline-none focus:ring-0 disabled:opacity-60 ${
-                                  isDark ? "bg-[#252524] text-[#edebe8] placeholder:text-[#888886]" : "bg-[#f5f5f4] text-[#1a1a1a] placeholder:text-[#6b6b6b]"
-                                }`}
+                                className={`flex-1 rounded-md py-2.5 pl-3 pr-3 text-sm focus:outline-none focus:ring-0 disabled:opacity-60 ${isDark ? "bg-[#252524] text-[#edebe8] placeholder:text-[#888886]" : "bg-[#f5f5f4] text-[#1a1a1a] placeholder:text-[#6b6b6b]"}`}
                               />
-                              <button
-                                type="submit"
-                                disabled={keplerLoading || !keplerMessage.trim()}
-                                className={`shrink-0 rounded px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50 ${
-                                  isDark ? "bg-[#1a1a1a] text-white" : "bg-[#1a1a1a] text-white"
-                                }`}
-                                aria-label="Send"
-                              >
-                                Send
-                              </button>
+                              <button type="submit" disabled={keplerLoading || !keplerMessage.trim()} className={`shrink-0 rounded px-4 py-2.5 text-sm font-medium hover:opacity-90 disabled:opacity-50 ${isDark ? "bg-[#1a1a1a] text-white" : "bg-[#1a1a1a] text-white"}`} aria-label="Send">Send</button>
                             </div>
                           </form>
                         </div>
@@ -1055,7 +1074,7 @@ export default function FeedPage() {
                     <button
                       key={article.url || index}
                       type="button"
-                      onClick={() => openKeplerForArticle(article)}
+                      onClick={() => toggleKeplerForArticle(article)}
                       className={`flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-colors first:rounded-t-lg last:border-b-0 last:rounded-b-lg ${
                         isDark ? "border-[#2a2a29] hover:bg-[#252524]" : "border-[#e5e4e2] hover:bg-[#f5f5f4]"
                       }`}
@@ -1086,6 +1105,11 @@ export default function FeedPage() {
                   if (isKeplerExpanded && keplerExpandedArticle) {
                     const key = article.url || article.title;
                     const messages = conversationsByArticle[key] ?? [];
+                    const tagCls = isDark ? "text-[#888886]" : "text-[#6b6b6b]";
+                    const mutedCls = isDark ? "text-[#888886]" : "text-[#6b6b6b]";
+                    const textCls = isDark ? "text-[#edebe8]" : "text-[#111110]";
+                    const isCompact = cardSize === "compact";
+                    const isComfortable = cardSize === "comfortable";
                     return (
                       <div
                         key={article.url || index}
@@ -1093,40 +1117,96 @@ export default function FeedPage() {
                           isDark ? "bg-[#1c1c1b]" : "bg-[#ffffff]"
                         }`}
                       >
-                        <div className="relative flex shrink-0 items-start justify-between border-b px-4 py-3 sm:px-6" style={isDark ? { borderColor: "#2a2a29" } : { borderColor: "#e5e4e2" }}>
-                          <div className="min-w-0 flex-1 pr-10">
-                            <h3 className={`font-serif text-lg font-medium leading-tight ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>
-                              {article.title}
-                            </h3>
-                            {article.keplersInsight && (
-                              <div className={`mt-2 border-l-2 pl-3 py-1 ${isDark ? "border-l-[#8b7355]" : "border-l-[#c4a574]"}`}>
-                                <p className={`text-xs font-medium uppercase tracking-[0.15em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`}>KEPLER&apos;S INSIGHT</p>
-                                <p className={`text-sm italic leading-relaxed break-words ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>{article.keplersInsight}</p>
-                              </div>
-                            )}
+                        {/* Full card content - image, title, summary, insight, suggested questions */}
+                        {article.urlToImage && (
+                          <div className="h-40 w-full overflow-hidden rounded-t-lg">
+                            <img src={article.urlToImage} alt="" className="h-full w-full object-cover" />
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setKeplerExpandedArticle(null)}
-                            aria-label="Close"
-                            className={`absolute right-4 top-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:opacity-70 ${
-                              isDark ? "text-[#888886] hover:text-[#edebe8]" : "text-[#6b6b6b] hover:text-[#1a1a1a]"
-                            }`}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                              <path d="M18 6 6 18" />
-                              <path d="m6 6 12 12" />
-                            </svg>
-                          </button>
+                        )}
+                        <div className={isCompact ? "p-3" : isComfortable ? "p-6" : "p-4"}>
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <span className={`text-xs font-medium uppercase tracking-[0.12em] ${tagCls}`}>{article.tag}</span>
+                            <div className="flex gap-0.5" aria-label={`Importance: ${article.importance} of 5`}>
+                              {[1, 2, 3, 4, 5].map((i) => (
+                                <span
+                                  key={i}
+                                  className={`shrink-0 rounded-full h-1 w-1 ${
+                                    i <= article.importance
+                                      ? isDark ? "bg-[#edebe8]" : "bg-[#111110]"
+                                      : isDark ? "border border-[#2a2a29] bg-transparent" : "border border-[#e5e4e2] bg-transparent"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            <span className={`text-xs ${mutedCls}`}>
+                              <time dateTime={article.publishedAt}>{formatRelativeTime(article.publishedAt)}</time>
+                              <span className="mx-1.5">·</span>
+                              <a href={article.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="hover:underline">
+                                {getSourceDisplay(article)}
+                              </a>
+                            </span>
+                          </div>
+                          <h2 className={`font-serif font-medium leading-tight ${textCls} ${isCompact ? "text-base" : isComfortable ? "text-xl mb-2" : "text-lg mb-1.5"}`}>
+                            {article.title}
+                          </h2>
+                          {!isCompact && (
+                            <p className={`text-sm leading-relaxed ${mutedCls} ${isComfortable ? "mb-4" : "mb-3"}`}>
+                              {article.keplerSummary}
+                            </p>
+                          )}
+                          {article.keplersInsight && (
+                            <div className={`mb-4 rounded-r border-l-2 pl-4 py-2 ${isDark ? "border-l-[#8b7355]" : "border-l-[#c4a574]"}`}>
+                              <p className={`text-xs font-medium uppercase tracking-[0.15em] ${isDark ? "text-[#888886]" : "text-[#888888]"}`}>KEPLER&apos;S INSIGHT</p>
+                              <p className={`mt-1 text-sm leading-relaxed italic break-words ${isDark ? "text-[#edebe8]" : "text-[#1a1a1a]"}`}>{article.keplersInsight}</p>
+                            </div>
+                          )}
+                          <div className="mb-4 flex flex-wrap gap-2">
+                            {[
+                              { label: "What does this mean?", question: `Explain this story in simple terms and why it matters: "${article.title}" — ${article.keplerSummary}` },
+                              { label: "What should I know?", question: `What key context and background do I need to fully understand this story? "${article.title}" — ${article.keplerSummary}` },
+                              { label: "What happens next?", question: `What are the implications of this story and where does it lead? "${article.title}" — ${article.keplerSummary}` },
+                            ].map(({ label, question }) => (
+                              <button
+                                key={label}
+                                type="button"
+                                onClick={() => submitKeplerQuery(article, question)}
+                                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                                  isDark ? "border-[#2a2a29] bg-transparent text-[#edebe8] hover:bg-[#1c1c1b]" : "border-[#e5e4e2] bg-transparent text-[#111110] hover:bg-[#e5e4e2]"
+                                }`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <a
+                              href={article.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`inline-flex items-center gap-1.5 text-xs transition-colors ${
+                                isDark ? "text-[#888886] hover:text-[#edebe8]" : "text-[#6b6b6b] hover:text-[#111110]"
+                              }`}
+                            >
+                              Read original article
+                              <span aria-hidden>→</span>
+                            </a>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleKeplerForArticle(article); }}
+                              className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                                isDark ? "border-[#2a2a29] bg-transparent text-[#edebe8] hover:bg-[#1c1c1b]" : "border-[#e5e4e2] bg-transparent text-[#111110] hover:bg-[#e5e4e2]"
+                              }`}
+                            >
+                              Collapse chat
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex flex-col">
+                        {/* Chat section below card */}
+                        <div className="flex flex-col border-t" style={isDark ? { borderColor: "#2a2a29" } : { borderColor: "#e5e4e2" }}>
                           <div className={`overflow-y-auto ${messages.length > 0 || keplerLoading || keplerError ? "max-h-[40vh] px-4 py-2 sm:px-6" : "px-4 py-0 sm:px-6"}`}>
                             <div className="space-y-4">
                               {messages.map((msg, i) => (
-                                <div
-                                  key={i}
-                                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                                >
+                                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                                   <div
                                     className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
                                       msg.role === "user"
@@ -1244,7 +1324,7 @@ export default function FeedPage() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openKeplerForArticle(article);
+                                toggleKeplerForArticle(article);
                               }}
                               className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
                                 isDark ? "border-[#2a2a29] bg-transparent text-[#edebe8] hover:bg-[#1c1c1b]" : "border-[#e5e4e2] bg-transparent text-[#111110] hover:bg-[#e5e4e2]"
