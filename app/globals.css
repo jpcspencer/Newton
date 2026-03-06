@@ -78,3 +78,13 @@ body {
     transform: translate(var(--drift-x, 0), var(--drift-y, 0));
   }
 }
+
+@keyframes feed-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}

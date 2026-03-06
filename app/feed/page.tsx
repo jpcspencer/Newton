@@ -56,35 +56,19 @@ function formatRelativeTime(dateStr: string): string {
   return date.toLocaleDateString();
 }
 
-function getTextContent(children: React.ReactNode): string {
-  if (typeof children === "string") return children;
-  if (Array.isArray(children)) return children.map(getTextContent).join("");
-  if (children && typeof children === "object" && "props" in children) {
-    const el = children as React.ReactElement<{ children?: React.ReactNode }>;
-    return getTextContent(el.props.children ?? "");
-  }
-  return "";
-}
-
 function ResponseContent({ content, isDark }: { content: string; isDark: boolean }) {
   const textCls = isDark ? "text-[#edebe8]" : "text-[#1a1a1a]";
   const strongCls = isDark ? "font-semibold text-[#edebe8]" : "font-semibold text-[#1a1a1a]";
+  const sanitized = content
+    .replace(/\*\*Kepler's Insight\*\*\s*/gi, "")
+    .replace(/^Kepler's Insight:\s*/gim, "")
+    .replace(/^⚡ NoC[^\n]*\n?/gim, "")
+    .replace(/^KEPLER'S INSIGHT\s*\n?/gim, "")
+    .trim();
   return (
     <ReactMarkdown
       components={{
-        p: ({ children }) => {
-          const text = getTextContent(children);
-          const isInsight = text.trimStart().startsWith("Kepler's Insight") || text.trimStart().startsWith("⚡ NoC") || text.trimStart().toLowerCase().includes("kepler's insight");
-          if (isInsight) {
-            return (
-              <div className={`mt-4 rounded-lg border-l-2 pl-4 py-3 first:mt-0 ${isDark ? "border-l-[#8b7355]" : "border-l-[#c4a574]"}`}>
-                <p className={`text-xs font-medium uppercase tracking-[0.15em] ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`} style={{ marginBottom: "0.25rem" }}>KEPLER'S INSIGHT</p>
-                <p className={`text-sm leading-relaxed italic ${textCls}`}>{children}</p>
-              </div>
-            );
-          }
-          return <p className={`mb-3 last:mb-0 text-[15px] leading-relaxed ${textCls}`}>{children}</p>;
-        },
+        p: ({ children }) => <p className={`mb-3 last:mb-0 text-[15px] leading-relaxed ${textCls}`}>{children}</p>,
         strong: ({ children }) => <strong className={strongCls}>{children}</strong>,
         em: ({ children }) => <em className="italic">{children}</em>,
         ul: ({ children }) => <ul className="my-3 list-disc pl-5 space-y-1">{children}</ul>,
@@ -92,7 +76,7 @@ function ResponseContent({ content, isDark }: { content: string; isDark: boolean
         li: ({ children }) => <li className={`text-sm leading-relaxed ${textCls}`}>{children}</li>,
       }}
     >
-      {content}
+      {sanitized}
     </ReactMarkdown>
   );
 }
@@ -371,7 +355,7 @@ export default function FeedPage() {
     }
   }
 
-  async function submitKeplerQuery(article: FeedArticle, query: string) {
+  async function submitKeplerQuery(article: FeedArticle, query: string, displayMessage?: string) {
     const trimmed = query.trim();
     if (!trimmed || keplerLoading) return;
 
@@ -380,6 +364,7 @@ export default function FeedPage() {
 
     const key = article.url || article.title;
     const history = conversationsByArticle[key] ?? [];
+    const userDisplayContent = (displayMessage ?? trimmed).trim();
 
     try {
       const res = await fetch("/api/chat", {
@@ -419,7 +404,7 @@ export default function FeedPage() {
         ...prev,
         [key]: [
           ...history,
-          { role: "user" as const, content: trimmed },
+          { role: "user" as const, content: userDisplayContent },
           { role: "assistant" as const, content: responseText },
         ],
       }));
@@ -978,13 +963,9 @@ export default function FeedPage() {
             )}
             {feedLoading && feedArticles.length === 0 && (
               <div className="flex w-full items-center justify-center py-16">
-                <div className={`flex items-center gap-2 ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>
-                  <svg className="h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  <span className="text-sm">Loading feed...</span>
-                </div>
+                <span className={`font-serif text-sm animate-[feed-pulse_2s_ease-in-out_infinite] ${isDark ? "text-[#888886]" : "text-[#6b6b6b]"}`}>
+                  Building your feed...
+                </span>
               </div>
             )}
             {feedError && !feedLoading && (
@@ -1040,7 +1021,7 @@ export default function FeedPage() {
                               <button
                                 key={label}
                                 type="button"
-                                onClick={() => submitKeplerQuery(article, question)}
+                                onClick={() => submitKeplerQuery(article, question, label)}
                                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                                   isDark ? "border-[#2a2a29] bg-transparent text-[#edebe8] hover:bg-[#1c1c1b]" : "border-[#e5e4e2] bg-transparent text-[#1a1a1a] hover:bg-[#e5e4e2]"
                                 }`}
@@ -1214,7 +1195,7 @@ export default function FeedPage() {
                               <button
                                 key={label}
                                 type="button"
-                                onClick={() => submitKeplerQuery(article, question)}
+                                onClick={() => submitKeplerQuery(article, question, label)}
                                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                                   isDark ? "border-[#2a2a29] bg-transparent text-[#edebe8] hover:bg-[#1c1c1b]" : "border-[#e5e4e2] bg-transparent text-[#111110] hover:bg-[#e5e4e2]"
                                 }`}

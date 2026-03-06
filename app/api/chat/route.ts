@@ -72,7 +72,7 @@ The user has saved interests: ${validInterests.join(", ")}. When relevant, tailo
 
 ## Article Context (the user is asking about this specific story)
 ${ctx}
-Answer in the context of this article.`;
+Answer in the context of this article. Do not add a "Kepler's Insight" header or section in your replies — write clean conversational prose and weave insights naturally.`;
     }
 
     const apiMessages: Array<{ role: "user" | "assistant"; content: string }> = Array.isArray(conversationHistory)

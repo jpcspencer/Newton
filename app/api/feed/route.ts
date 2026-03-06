@@ -471,8 +471,6 @@ const REDDIT_SUBREDDITS = [
   "artificial",
   "MachineLearning",
   "technology",
-  "Futurology",
-  "singularity",
   "space",
   "Physics",
   "neuroscience",
